@@ -843,6 +843,7 @@ body {
 
 .synthese-positive { color: var(--green); }
 .synthese-negative { color: var(--red); }
+.synthese-neutral  { color: #f0b429; }
 
 .modal-synthese-label {
   font-weight: 400;

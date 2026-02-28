@@ -684,7 +684,7 @@ function App() {
           ? allOptions.reduce((best, curr) => curr.value > best.value ? curr : best)
           : null
         const diff = bestOption !== null ? bestOption.value - total : null
-        const isRentable = diff !== null && diff >= SEUIL_KAMAS
+
 
         // Coef min pour être rentable : valeur(coef) linéaire → coef_seuil = (total + SEUIL) * coef / bestValue
         let coefSeuil: number | null = null
@@ -751,7 +751,7 @@ function App() {
                     <span className="modal-label">Prix de craft</span>
                     <span className="modal-value">{total > 0 ? formatKamas(total) : '—'}</span>
                     {coefSeuil !== null && (
-                      <span className="modal-seuil">Coef min rentable : <strong>{coefSeuil.toFixed(1)}%</strong></span>
+                      <span className="modal-seuil">Coef min rentable : <strong>{Math.ceil(coefSeuil)}%</strong></span>
                     )}
                     {coefSeuilImpossible && (
                       <span className="modal-seuil modal-seuil--impossible">Jamais rentable</span>
@@ -787,9 +787,7 @@ function App() {
                   {bestOption !== null && diff !== null && (
                     <div className="modal-field">
                       <span className="modal-label">Résultat brisage</span>
-                      <span className={`modal-result${diff >= 0 ? ' synthese-positive' : ' synthese-negative'}`}>
-                        <span className="modal-synthese-label">{isRentable ? '✓ rentable' : '✗ non rentable'}</span>
-                        {' '}
+                      <span className={`modal-result${diff >= SEUIL_KAMAS ? ' synthese-positive' : diff > 0 ? ' synthese-neutral' : ' synthese-negative'}`}>
                         <strong>{diff >= 0 ? '+' : ''}{formatKamas(diff)}</strong>
                       </span>
                     </div>
