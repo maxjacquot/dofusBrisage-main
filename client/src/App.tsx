@@ -45,107 +45,89 @@ const STAT_WEIGHTS: Record<string, number> = {
   'Puissance': 2,
 
   // ── Stats spéciales ────────────────────────────────────
-  'Points d\'Action': 100,       // Ga Pa
   'PA': 100,
-  'Points de Mouvement': 90,     // Ga Pme
   'PM': 90,
   'Portée': 51,
   'Initiative': 1,
-  'Pods': 2.5,
-  'Invocations': 30,
-  'Nombre d\'invocations': 30,
+  'Pod': 2.5,
+  'Invocation': 30,
 
   // ── Combat ─────────────────────────────────────────────
   'Tacle': 4,
   'Fuite': 4,
-  'Esquive': 4,
   'Esquive PA': 4,
   'Esquive PM': 4,
   'Retrait PA': 7,
   'Retrait PM': 7,
-  'Résistance PA': 7,            // Re Pa
-  'Résistance PM': 7,            // Re Pme
-  'Résistance au retrait PA': 7,
-  'Résistance au retrait PM': 7,
-  'Résistance aux pertes de PA': 7,
-  'Résistance aux pertes de PM': 7,
 
   // ── Dommages ───────────────────────────────────────────
-  'Dommages': 20,
-  'Soins': 10,
-  'Coups Critiques': 10,         // Cri
-  'Critique': 10,
-  'Dommages Critiques': 5,       // Do Cri
-  'Dommages critiques': 5,
-  'Dommages Renvoyés': 5,        // Do Ren
-  'Renvoi de dommages': 5,
-  'Dommages renvoyés': 5,
-  'Dommages Poussée': 5,         // Do Pou
-  'Dommages de Poussée': 5,
+  'Dommage': 20,
+  'Soin': 10,
+  '% Critique': 10,
+  'Dommages Renvoyés': 5,
+  'Dommage Critiques': 5,
+  'Dommage Poussée': 5,
 
   // ── Dommages élémentaires ──────────────────────────────
-  'Dommages Feu': 5,
-  'Dommages Eau': 5,
-  'Dommages Terre': 5,
-  'Dommages Air': 5,
-  'Dommages Neutre': 5,
   'Dommage Feu': 5,
   'Dommage Eau': 5,
   'Dommage Terre': 5,
   'Dommage Air': 5,
   'Dommage Neutre': 5,
+  'dommages Feu': 5,
+  'dommages Eau': 5,
+  'dommages Terre': 5,
+  'dommages Air': 5,
+  'dommages Neutre': 5,
+  'dommages du meilleur élément': 5,
 
-  // ── Dommages Pièges (par type) ─────────────────────────
-  'Pièges': 5,                           // Pi
-  'Dommages des pièges': 5,
-  'Pièges (%)': 2,                       // Pi Per
-  'Puissance des pièges': 2,
-  'Dommages Pièges (Armes)': 15,         // Do Per Ar
-  'Dommages Pièges (Distance)': 15,      // Do Per Di
-  'Dommages Pièges (Mêlée)': 15,         // Do Per Me
-  'Dommages Pièges (Sorts)': 15,         // Do Per So
+  // ── Vol élémentaire (lifesteal) ────────────────────────
+  'vol Feu': 5,
+  'vol Eau': 5,
+  'vol Terre': 5,
+  'vol Air': 5,
+  'vol Neutre': 5,
+  'vol du meilleur élément': 5,
+  'Vole PM': 7,
+  'soins Feu': 10,
+
+  // ── Pièges ─────────────────────────────────────────────
+  'Dommage Pièges': 5,
+  'Puissance Pièges': 2,
 
   // ── Résistances fixes ──────────────────────────────────
-  'Résistance': 2,
   'Résistance Neutre': 2,
   'Résistance Feu': 2,
   'Résistance Eau': 2,
   'Résistance Terre': 2,
   'Résistance Air': 2,
-  'Résistance Critiques': 2,     // Re Cri
-  'Résistance aux critiques': 2,
-  'Résistance Poussée': 2,       // Re Pou
-  'Résistance aux Poussées': 2,
+  'Résistance Critiques': 2,
+  'Résistance Poussée': 2,
 
   // ── Résistances % élémentaires ─────────────────────────
-  'Résistance % Neutre': 6,      // Re Per Neutre
-  'Résistance % Feu': 6,
-  'Résistance % Eau': 6,
-  'Résistance % Terre': 6,
-  'Résistance % Air': 6,
-  'Résistance (%) Neutre': 6,
-  'Résistance (%) Feu': 6,
-  'Résistance (%) Eau': 6,
-  'Résistance (%) Terre': 6,
-  'Résistance (%) Air': 6,
-  '% de résistance Neutre': 6,
-  '% de résistance Feu': 6,
-  '% de résistance Eau': 6,
-  '% de résistance Terre': 6,
-  '% de résistance Air': 6,
+  '% Résistance Neutre': 6,
+  '% Résistance Feu': 6,
+  '% Résistance Eau': 6,
+  '% Résistance Terre': 6,
+  '% Résistance Air': 6,
 
   // ── Résistances % distance / mêlée ─────────────────────
-  'Résistance % Distance': 15,   // Re Per Di
-  'Résistance % Mêlée': 15,      // Re Per Me
-  'Résistance (%) à distance': 15,
-  'Résistance (%) en mêlée': 15,
-  '% de résistance à distance': 15,
-  '% de résistance en mêlée': 15,
+  '% Résistance distance': 15,
+  '% Résistance mêlée': 15,
+
+  // ── % Dommages ─────────────────────────────────────────
+  '% Dommages aux sorts': 5,
+  "% Dommages d'armes": 5,
+  '% Dommages distance': 5,
+  '% Dommages mêlée': 5,
 
   // ── Chasse ─────────────────────────────────────────────
-  'Dommages Arme de Chasse': 5,  // Chasse
-  'Chasse à la prime': 5,
-  'Chasse': 5,
+  'Arme de chasse': 5,
+
+  // ── Déplacement de cases ───────────────────────────────
+  'Attire de case': 4,
+  'Repousse de case': 4,
+  'Avance de case': 4,
 }
 
 // --- Types ---
