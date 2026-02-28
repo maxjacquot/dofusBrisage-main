@@ -722,16 +722,6 @@ body {
   color: var(--text3);
 }
 
-.modal-stat-nofocus {
-  font-size: 0.75rem;
-  color: var(--text3);
-}
-
-.modal-rune-count {
-  font-size: 0.78rem;
-  color: var(--text2);
-  display: block;
-}
 
 .rune-input-stale {
   border-color: var(--red) !important;

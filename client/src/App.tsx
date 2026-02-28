@@ -254,12 +254,6 @@ function formatDate(updatedAt: string) {
 
 function formatKamas(n: number) { return Math.floor(n).toLocaleString('fr-FR') + ' k' }
 
-function formatRunes(n: number): string {
-  const whole = Math.floor(n)
-  const prob = Math.round((n - whole) * 100)
-  if (prob === 0) return `${whole} rune${whole !== 1 ? 's' : ''}`
-  return `${whole} rune${whole !== 1 ? 's' : ''} +${prob}%`
-}
 
 // --- Calcul de brisage ---
 
@@ -847,9 +841,6 @@ function App() {
                                 : <>{`+${d.min}–${d.max}`}<span className="modal-stat-avg"> (moy. {Number.isInteger(d.avgVal) ? d.avgVal : d.avgVal.toFixed(1)})</span></>
                               }
                             </span>
-                            {d.hasWeight && d.runesNoFocus > 0 && (
-                              <span className="modal-stat-nofocus">{formatRunes(d.runesNoFocus)} s.f.</span>
-                            )}
                           </span>
                           <input
                             className={`price-input${stale ? ' rune-input-stale' : ''}`}
@@ -865,10 +856,7 @@ function App() {
                           />
                           <span className={`modal-focus-val${isBest ? ' modal-focus-val--best' : (valueFocus > 0 ? ' total-value' : '')}`}>
                             {d.hasWeight && d.runesFocus > 0 ? (
-                              <>
-                                <span className="modal-rune-count">{formatRunes(d.runesFocus)}</span>
-                                {valueFocus > 0 ? formatKamas(valueFocus) : <span className="modal-runes-hint">entrer prix rune</span>}
-                              </>
+                              valueFocus > 0 ? formatKamas(valueFocus) : <span className="modal-runes-hint">entrer prix rune</span>
                             ) : '—'}
                           </span>
                         </div>
