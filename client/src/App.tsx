@@ -709,18 +709,20 @@ function App() {
         const diff = bestOption !== null ? bestOption.value - total : null
 
 
-        // Coef min pour être rentable : valeur(coef) linéaire → coef_seuil = (total + SEUIL) * coef / bestValue
+        // Coef min pour couvrir le coût de craft (break-even) : valeur(coef) linéaire → coef_seuil = total * coef / bestValue
+        // "Jamais rentable" = même à 100% de coef, le brisage ne couvre pas le craft.
+        // On n'utilise pas SEUIL_KAMAS ici (déjà utilisé pour la couleur du résultat).
         let coefSeuil: number | null = null
         let coefSeuilImpossible = false
-        if (bestOption !== null && bestOption.value > 0 && coef > 0) {
-          const raw = (total + SEUIL_KAMAS) * coef / bestOption.value
+        if (bestOption !== null && bestOption.value > 0 && coef > 0 && total > 0) {
+          const raw = total * coef / bestOption.value
           if (raw <= 100) coefSeuil = raw
           else coefSeuilImpossible = true
         }
 
         return (
-          <div className="modal-overlay" onClick={() => setModalItemId(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-overlay">
+            <div className="modal">
               <div className="modal-header">
                 <div className="modal-title-row">
                   <img className="modal-item-icon" src={item.image_urls.icon} alt="" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
