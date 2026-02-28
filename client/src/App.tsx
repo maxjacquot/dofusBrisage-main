@@ -29,17 +29,18 @@ const LS_PRESETS_KEY = 'dofus-brisage-presets'
 const STALE_DAYS = 2
 const SEUIL_KAMAS = 1000 // profit minimum pour qu'un brisage soit intéressant
 
-// Poids unitaires par stat pour le calcul de brisage
-// Correspondances : Vi=Vitalité, Sa=Sagesse, Fo=Force, Ine=Intelligence,
-// Age=Agilité, Cha=Chance, Pui=Puissance, Cri=Coups Critiques,
-// Ga Pa=Points d'Action, Ga Pme=Points de Mouvement, etc.
-const STAT_WEIGHTS: Record<string, number> = {
+// Poids de brisage par stat (utilisé dans : Pdb = 3 * jet * poids * lvl / 200 + 1)
+// Attention : pour certaines stats, ce poids diffère du poids de la rune Ba.
+// Ex : 1 rune Ba Vita = 5 vita → poids_brisage = 0.2 (= 1/5)
+//      1 rune Ba Init = 10 ini → poids_brisage = 0.1 (= 1/10)
+//      1 rune Ba Pod = 4 pods → poids_brisage = 0.25 (= 1/4)
+const BRISAGE_POIDS: Record<string, number> = {
   // ── Stats de base ──────────────────────────────────────
   'Force': 1,
   'Intelligence': 1,
   'Chance': 1,
   'Agilité': 1,
-  'Vitalité': 2,
+  'Vitalité': 0.2,
   'Sagesse': 3,
   'Prospection': 3,
   'Puissance': 2,
@@ -48,15 +49,15 @@ const STAT_WEIGHTS: Record<string, number> = {
   'PA': 100,
   'PM': 90,
   'Portée': 51,
-  'Initiative': 1,
-  'Pod': 2.5,
+  'Initiative': 0.1,
+  'Pod': 0.25,
   'Invocation': 30,
 
   // ── Combat ─────────────────────────────────────────────
   'Tacle': 4,
   'Fuite': 4,
-  'Esquive PA': 4,
-  'Esquive PM': 4,
+  'Esquive PA': 7,
+  'Esquive PM': 7,
   'Retrait PA': 7,
   'Retrait PM': 7,
 
@@ -64,7 +65,7 @@ const STAT_WEIGHTS: Record<string, number> = {
   'Dommage': 20,
   'Soin': 10,
   '% Critique': 10,
-  'Dommages Renvoyés': 5,
+  'Dommages Renvoyés': 10,
   'Dommage Critiques': 5,
   'Dommage Poussée': 5,
 
@@ -116,10 +117,10 @@ const STAT_WEIGHTS: Record<string, number> = {
   '% Résistance mêlée': 15,
 
   // ── % Dommages ─────────────────────────────────────────
-  '% Dommages aux sorts': 5,
-  "% Dommages d'armes": 5,
-  '% Dommages distance': 5,
-  '% Dommages mêlée': 5,
+  '% Dommages aux sorts': 15,
+  "% Dommages d'armes": 15,
+  '% Dommages distance': 15,
+  '% Dommages mêlée': 15,
 
   // ── Chasse ─────────────────────────────────────────────
   'Arme de chasse': 5,
@@ -128,6 +129,15 @@ const STAT_WEIGHTS: Record<string, number> = {
   'Attire de case': 4,
   'Repousse de case': 4,
   'Avance de case': 4,
+}
+
+// Poids de la rune Ba (utilisé comme dénominateur : runes = Pdb * taux / poids_rune)
+// Uniquement pour les stats où poids_rune ≠ poids_brisage.
+// Pour toutes les autres stats, poids_rune = poids_brisage.
+const RUNE_POIDS_OVERRIDE: Record<string, number> = {
+  'Vitalité': 1,   // Ba Vita = 5 vita  → poids_rune 1, poids_brisage 0.2
+  'Initiative': 1, // Ba Init = 10 init → poids_rune 1, poids_brisage 0.1
+  'Pod': 2.5,      // Ba Pod  = 4 pods  → poids_rune 2.5, poids_brisage 0.25
 }
 
 // --- Types ---
@@ -257,10 +267,10 @@ interface StatBrisage {
 }
 
 // Formule officielle Dofus 3 :
-//   Pdb  = 3 * jet * poids * lvl / 200 + 1
-//   Sans focus  → runes Ba = Pdb * taux / poids
+//   Pdb  = 3 * jet * poids_brisage * lvl / 200 + 1
+//   Sans focus  → runes Ba = Pdb * taux / poids_rune
 //   Avec focus  → Pdb_focus = Pdb_k + (PdbTotal − Pdb_k) / 2
-//               → runes Ba  = Pdb_focus * taux / poids_k
+//               → runes Ba  = Pdb_focus * taux / poids_rune_k
 function computeStatBrisage(item: EquipmentItem, coef: number): StatBrisage[] {
   const niveau = item.level
   const taux = coef / 100
@@ -270,18 +280,19 @@ function computeStatBrisage(item: EquipmentItem, coef: number): StatBrisage[] {
     const min = Math.min(eff.int_minimum, eff.int_maximum)
     const max = Math.max(eff.int_minimum, eff.int_maximum)
     const avgVal = (min + max) / 2
-    const unitWeight = STAT_WEIGHTS[eff.type.name]
-    const hasWeight = unitWeight !== undefined
-    const pdb = hasWeight ? 3 * avgVal * unitWeight * niveau / 200 + 1 : 0
-    return { name: eff.type.name, min, max, avgVal, hasWeight, pdb, unitWeight: unitWeight ?? 1 }
+    const brisagePoids = BRISAGE_POIDS[eff.type.name]
+    const hasWeight = brisagePoids !== undefined
+    const runePoids = RUNE_POIDS_OVERRIDE[eff.type.name] ?? brisagePoids ?? 1
+    const pdb = hasWeight ? 3 * avgVal * brisagePoids * niveau / 200 + 1 : 0
+    return { name: eff.type.name, min, max, avgVal, hasWeight, pdb, runePoids }
   })
 
   const pdbTotal = rows.reduce((s, r) => s + r.pdb, 0)
 
   return rows.map(r => {
-    const runesNoFocus = r.hasWeight ? r.pdb * taux / r.unitWeight : 0
+    const runesNoFocus = r.hasWeight ? r.pdb * taux / r.runePoids : 0
     const pdbFocus = r.pdb + (pdbTotal - r.pdb) / 2
-    const runesFocus = r.hasWeight ? pdbFocus * taux / r.unitWeight : 0
+    const runesFocus = r.hasWeight ? pdbFocus * taux / r.runePoids : 0
     return { name: r.name, min: r.min, max: r.max, avgVal: r.avgVal, hasWeight: r.hasWeight, runesNoFocus, runesFocus }
   })
 }
