@@ -251,14 +251,19 @@ interface StatBrisage {
   min: number
   max: number
   avgVal: number
-  poidsLigne: number
   hasWeight: boolean
   runesNoFocus: number
   runesFocus: number
 }
 
+// Formule officielle Dofus 3 :
+//   Pdb  = 3 * jet * poids * lvl / 200 + 1
+//   Sans focus  → runes Ba = Pdb * taux / poids
+//   Avec focus  → Pdb_focus = Pdb_k + (PdbTotal − Pdb_k) / 2
+//               → runes Ba  = Pdb_focus * taux / poids_k
 function computeStatBrisage(item: EquipmentItem, coef: number): StatBrisage[] {
   const niveau = item.level
+  const taux = coef / 100
   const effects = (item.effects ?? []).filter(e => (e.int_minimum + e.int_maximum) / 2 > 0)
 
   const rows = effects.map(eff => {
@@ -267,17 +272,17 @@ function computeStatBrisage(item: EquipmentItem, coef: number): StatBrisage[] {
     const avgVal = (min + max) / 2
     const unitWeight = STAT_WEIGHTS[eff.type.name]
     const hasWeight = unitWeight !== undefined
-    const poidsLigne = hasWeight ? avgVal * unitWeight : 0
-    return { name: eff.type.name, min, max, avgVal, poidsLigne, hasWeight }
+    const pdb = hasWeight ? 3 * avgVal * unitWeight * niveau / 200 + 1 : 0
+    return { name: eff.type.name, min, max, avgVal, hasWeight, pdb, unitWeight: unitWeight ?? 1 }
   })
 
-  const poidsTotal = rows.reduce((s, r) => s + r.poidsLigne, 0)
+  const pdbTotal = rows.reduce((s, r) => s + r.pdb, 0)
 
   return rows.map(r => {
-    const runesNoFocus = r.hasWeight ? r.poidsLigne * (niveau / 40) * (coef / 100) : 0
-    const poidsEffectif = r.poidsLigne + (poidsTotal - r.poidsLigne) / 2
-    const runesFocus = r.hasWeight ? poidsEffectif * (niveau / 40) * (coef / 100) : 0
-    return { ...r, runesNoFocus, runesFocus }
+    const runesNoFocus = r.hasWeight ? r.pdb * taux / r.unitWeight : 0
+    const pdbFocus = r.pdb + (pdbTotal - r.pdb) / 2
+    const runesFocus = r.hasWeight ? pdbFocus * taux / r.unitWeight : 0
+    return { name: r.name, min: r.min, max: r.max, avgVal: r.avgVal, hasWeight: r.hasWeight, runesNoFocus, runesFocus }
   })
 }
 
