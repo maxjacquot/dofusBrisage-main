@@ -280,8 +280,8 @@ function computeStatBrisage(item: EquipmentItem, coef: number): StatBrisage[] {
   const effects = (item.effects ?? []).filter(e => (e.int_minimum + e.int_maximum) / 2 > 0)
 
   const rows = effects.map(eff => {
-    const min = eff.int_minimum
-    const max = eff.int_maximum
+    const min = Math.min(eff.int_minimum, eff.int_maximum)
+    const max = Math.max(eff.int_minimum, eff.int_maximum)
     const avgVal = (min + max) / 2
     const unitWeight = STAT_WEIGHTS[eff.type.name]
     const hasWeight = unitWeight !== undefined
