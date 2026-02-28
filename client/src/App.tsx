@@ -1,27 +1,13 @@
 import { useState } from 'react'
 import './App.css'
 
-const ITEM_TYPES = [
-  { label: 'Tous les types', value: '' },
-  { label: 'Amulette', value: 'amulet' },
-  { label: 'Anneau', value: 'ring' },
-  { label: 'Arc', value: 'bow' },
-  { label: 'Arme magique', value: 'magic-weapon' },
-  { label: 'Baguette', value: 'wand' },
-  { label: 'Bâton', value: 'staff' },
-  { label: 'Bottes', value: 'boots' },
-  { label: 'Bouclier', value: 'shield' },
-  { label: 'Cape', value: 'cloak' },
-  { label: 'Ceinture', value: 'belt' },
-  { label: 'Chapeau', value: 'hat' },
-  { label: 'Dague', value: 'dagger' },
-  { label: 'Dofus', value: 'dofus' },
-  { label: 'Épée', value: 'sword' },
-  { label: 'Hache', value: 'axe' },
-  { label: 'Marteau', value: 'hammer' },
-  { label: 'Outil', value: 'tool' },
-  { label: 'Pelle', value: 'shovel' },
-  { label: 'Pioche', value: 'pickaxe' },
+const METIERS: { label: string; value: string; types: string[] }[] = [
+  { label: 'Tous les métiers', value: '', types: [] },
+  { label: 'Bijoutier', value: 'bijoutier', types: ['amulet', 'ring'] },
+  { label: 'Cordonnier', value: 'cordonnier', types: ['hat', 'belt'] },
+  { label: 'Forgeron', value: 'forgeron', types: ['hammer', 'sword', 'dagger', 'axe', 'scythe', 'lance'] },
+  { label: 'Sculpteur', value: 'sculpteur', types: ['bow', 'wand', 'staff'] },
+  { label: 'Tailleur', value: 'tailleur', types: ['cloak', 'hat'] },
 ]
 
 const LS_PRICES_KEY = 'dofus-brisage-prices'
@@ -177,7 +163,7 @@ interface SearchPreset {
   name: string
   lvlmin: number
   lvlmax: number
-  itemType: string
+  metier: string
 }
 
 type Tab = 'craft' | 'items'
@@ -305,7 +291,7 @@ function App() {
 
   const [lvlmin, setLvlmin] = useState(1)
   const [lvlmax, setLvlmax] = useState(200)
-  const [itemType, setItemType] = useState('')
+  const [metier, setMetier] = useState('')
 
   const [items, setItems] = useState<EquipmentItem[]>([])
   const [resources, setResources] = useState<Record<number, ResourceInfo>>({})
@@ -340,7 +326,9 @@ function App() {
       const params = new URLSearchParams()
       params.set('lvlmin', String(lvlmin))
       params.set('lvlmax', String(lvlmax))
-      if (itemType) params.set('itemType', itemType)
+      const metierObj = METIERS.find(m => m.value === metier)
+      const types = metierObj?.types ?? []
+      if (types.length > 0) params.set('itemTypes', types.join(','))
 
       const res = await fetch(`http://localhost:3001/api/equipment?${params}`)
       const data = await res.json()
@@ -421,7 +409,7 @@ function App() {
 
   function savePreset() {
     if (!presetName.trim()) return
-    const updated = [...presets, { id: Date.now().toString(), name: presetName.trim(), lvlmin, lvlmax, itemType }]
+    const updated = [...presets, { id: Date.now().toString(), name: presetName.trim(), lvlmin, lvlmax, metier }]
     setPresets(updated)
     lsSet(LS_PRESETS_KEY, updated)
     setPresetName('')
@@ -437,7 +425,7 @@ function App() {
   function applyPreset(p: SearchPreset) {
     setLvlmin(p.lvlmin)
     setLvlmax(p.lvlmax)
-    setItemType(p.itemType)
+    setMetier(p.metier)
   }
 
   const itemsWithRecipe = items.filter(i => (i.recipe ?? []).length > 0)
@@ -484,9 +472,9 @@ function App() {
           <input type="number" min={1} max={200} value={lvlmax} onChange={e => setLvlmax(Number(e.target.value))} />
         </div>
         <div className="filter-group">
-          <label>Type d'objet</label>
-          <select value={itemType} onChange={e => setItemType(e.target.value)}>
-            {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          <label>Métier</label>
+          <select value={metier} onChange={e => setMetier(e.target.value)}>
+            {METIERS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
         <button className="search-btn" onClick={handleSearch} disabled={loading}>

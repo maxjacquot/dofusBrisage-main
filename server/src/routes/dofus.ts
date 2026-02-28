@@ -30,15 +30,24 @@ router.get('/resources/:ressourceId', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/equipment?lvlmin=1&lvlmax=200&itemType=sword
+// GET /api/equipment?lvlmin=1&lvlmax=200&itemTypes=sword,axe,hammer
 router.get('/equipment', async (req: Request, res: Response) => {
   try {
     const lvlmin = req.query.lvlmin ? Number(req.query.lvlmin) : undefined;
     const lvlmax = req.query.lvlmax ? Number(req.query.lvlmax) : undefined;
-    const itemType = req.query.itemType as string | undefined;
+    const itemTypesParam = req.query.itemTypes as string | undefined;
 
-    const data = await getEquipmentAll({ lvlmin, lvlmax, itemType });
-    res.json(data);
+    if (itemTypesParam) {
+      const types = itemTypesParam.split(',').filter(Boolean);
+      const results = await Promise.all(
+        types.map(t => getEquipmentAll({ lvlmin, lvlmax, itemType: t }))
+      );
+      const items = results.flatMap((r: any) => (r.items ?? []));
+      res.json({ items });
+    } else {
+      const data = await getEquipmentAll({ lvlmin, lvlmax });
+      res.json(data);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue';
     res.status(500).json({ error: message });
