@@ -710,6 +710,9 @@ body {
 }
 
 .modal-stat-val {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   font-size: 0.88rem;
   color: var(--text1);
 }
@@ -719,11 +722,26 @@ body {
   color: var(--text3);
 }
 
+.modal-stat-nofocus {
+  font-size: 0.75rem;
+  color: var(--text3);
+}
+
+.modal-rune-count {
+  font-size: 0.78rem;
+  color: var(--text2);
+  display: block;
+}
+
 .rune-input-stale {
   border-color: var(--red) !important;
 }
 
 .modal-focus-val {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
   font-size: 0.9rem;
   font-weight: 600;
   text-align: right;
@@ -757,7 +775,7 @@ body {
 
 .modal-ing-title {
   display: grid;
-  grid-template-columns: 1fr 110px 80px;
+  grid-template-columns: 1fr 80px 110px 80px;
   gap: 0.75rem;
   align-items: center;
   padding: 0.45rem 0.75rem;
@@ -774,7 +792,7 @@ body {
 
 .modal-ing-row {
   display: grid;
-  grid-template-columns: 1fr 110px 80px;
+  grid-template-columns: 1fr 80px 110px 80px;
   gap: 0.75rem;
   align-items: center;
   padding: 0.5rem 0.75rem;
@@ -790,6 +808,13 @@ body {
 .modal-ing-name {
   font-size: 0.88rem;
   color: var(--text0);
+}
+
+.modal-ing-unit-price {
+  font-size: 0.82rem;
+  color: var(--text2);
+  white-space: nowrap;
+  text-align: right;
 }
 
 .modal-ing-price {

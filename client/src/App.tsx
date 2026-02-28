@@ -254,6 +254,13 @@ function formatDate(updatedAt: string) {
 
 function formatKamas(n: number) { return Math.floor(n).toLocaleString('fr-FR') + ' k' }
 
+function formatRunes(n: number): string {
+  const whole = Math.floor(n)
+  const prob = Math.round((n - whole) * 100)
+  if (prob === 0) return `${whole} rune${whole !== 1 ? 's' : ''}`
+  return `${whole} rune${whole !== 1 ? 's' : ''} +${prob}%`
+}
+
 // --- Calcul de brisage ---
 
 interface StatBrisage {
@@ -728,6 +735,7 @@ function App() {
                   <div className="modal-ingredients">
                     <div className="modal-ing-title">
                     <span>Ressources du craft</span>
+                    <span className="modal-ing-col-header">Prix unit.</span>
                     <span className="modal-ing-col-header">Valeur totale</span>
                     <span></span>
                   </div>
@@ -740,6 +748,9 @@ function App() {
                         <div key={r.item_ankama_id} className={`modal-ing-row${isFarmed ? ' modal-ing-row--farmed' : ''}`}>
                           <span className="modal-ing-name">
                             {name} <span className="ingredient-qty">×{r.quantity}</span>
+                          </span>
+                          <span className="modal-ing-unit-price">
+                            {unitPrice > 0 ? formatKamas(unitPrice) : '—'}
                           </span>
                           <span className="modal-ing-price">
                             {linePrice > 0 ? formatKamas(linePrice) : '—'}
@@ -817,7 +828,7 @@ function App() {
                       <span>Stat</span>
                       <span>Valeur</span>
                       <span>Prix rune (Ba)</span>
-                      <span>Valeur focus</span>
+                      <span>Runes / Valeur focus</span>
                     </div>
                     {stats.map(d => {
                       const entry = runePrices[d.name]
@@ -828,10 +839,15 @@ function App() {
                         <div key={d.name} className={`modal-stats-row${isBest ? ' modal-stats-row--best' : ''}`}>
                           <span className="modal-stat-name">{d.name}</span>
                           <span className="modal-stat-val">
-                            {d.min === d.max
-                              ? `+${d.min}`
-                              : <>{`+${d.min}–${d.max}`}<span className="modal-stat-avg"> (moy. {Number.isInteger(d.avgVal) ? d.avgVal : d.avgVal.toFixed(1)})</span></>
-                            }
+                            <span>
+                              {d.min === d.max
+                                ? `+${d.min}`
+                                : <>{`+${d.min}–${d.max}`}<span className="modal-stat-avg"> (moy. {Number.isInteger(d.avgVal) ? d.avgVal : d.avgVal.toFixed(1)})</span></>
+                              }
+                            </span>
+                            {d.hasWeight && d.runesNoFocus > 0 && (
+                              <span className="modal-stat-nofocus">{formatRunes(d.runesNoFocus)} s.f.</span>
+                            )}
                           </span>
                           <input
                             className={`price-input${stale ? ' rune-input-stale' : ''}`}
@@ -846,9 +862,12 @@ function App() {
                             placeholder="Prix rune"
                           />
                           <span className={`modal-focus-val${isBest ? ' modal-focus-val--best' : (valueFocus > 0 ? ' total-value' : '')}`}>
-                            {d.hasWeight && d.runesFocus > 0
-                              ? (valueFocus > 0 ? formatKamas(valueFocus) : <span className="modal-runes-hint">entrer prix rune</span>)
-                              : (valueFocus > 0 ? formatKamas(valueFocus) : '—')}
+                            {d.hasWeight && d.runesFocus > 0 ? (
+                              <>
+                                <span className="modal-rune-count">{formatRunes(d.runesFocus)}</span>
+                                {valueFocus > 0 ? formatKamas(valueFocus) : <span className="modal-runes-hint">entrer prix rune</span>}
+                              </>
+                            ) : '—'}
                           </span>
                         </div>
                       )
