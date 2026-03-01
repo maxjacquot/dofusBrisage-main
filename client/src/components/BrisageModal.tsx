@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { SEUIL_KAMAS, STAT_TO_RUNE_BA } from '../constants'
 import { isBrisageCoefStale, getBrisageCoefDateStr, getRunePriceEntry, saveRunePrice, isRunePriceStale } from '../storage'
 import { formatDate, formatKamas, computeStatBrisage } from '../utils'
@@ -30,8 +30,17 @@ export function BrisageModal({
   onToggleFarmerResource,
 }: BrisageModalProps) {
   const [brisageInput, setBrisageInput] = useState(String(brisageCoef ?? ''))
-  const [runePrices, setRunePrices] = useState<Record<string, PriceEntry>>({})
+  const [runePriceOverrides, setRunePriceOverrides] = useState<Record<string, PriceEntry>>({})
   const [copiedRune, setCopiedRune] = useState<string | null>(null)
+
+  const runePrices = useMemo(() => {
+    const prices: Record<string, PriceEntry> = {}
+    for (const eff of item.effects ?? []) {
+      const entry = getRunePriceEntry(eff.type.name)
+      if (entry) prices[eff.type.name] = entry
+    }
+    return { ...prices, ...runePriceOverrides }
+  }, [item.effects, runePriceOverrides])
 
   function copyRuneName(statName: string) {
     const runeName = STAT_TO_RUNE_BA[statName]
@@ -40,15 +49,6 @@ export function BrisageModal({
     setCopiedRune(statName)
     setTimeout(() => setCopiedRune(null), 1500)
   }
-
-  useEffect(() => {
-    const prices: Record<string, PriceEntry> = {}
-    for (const eff of item.effects ?? []) {
-      const entry = getRunePriceEntry(eff.type.name)
-      if (entry) prices[eff.type.name] = entry
-    }
-    setRunePrices(prices)
-  }, [item.ankama_id])
 
   const total = (item.recipe ?? []).reduce((s, r) => {
     if (farmerResourceIds.has(r.item_ankama_id)) return s
@@ -227,7 +227,7 @@ export function BrisageModal({
                       onChange={e => {
                         const price = e.target.value === '' ? 0 : Number(e.target.value)
                         saveRunePrice(d.name, price)
-                        setRunePrices(prev => ({ ...prev, [d.name]: { price, updatedAt: new Date().toISOString() } }))
+                        setRunePriceOverrides(prev => ({ ...prev, [d.name]: { price, updatedAt: new Date().toISOString() } }))
                       }}
                       placeholder="Prix rune"
                     />
