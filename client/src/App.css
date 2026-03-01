@@ -991,6 +991,20 @@ body {
 /* ── Badge orange onglet À farmer ───────────────────────── */
 .tab-count--orange { background: #f0b429 !important; color: #000 !important; }
 
+/* ── Bouton vider dans un tab ───────────────────────────── */
+.tab-clear-btn {
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text3);
+  padding: 0 0.1rem;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+
+.tab-clear-btn:hover {
+  color: var(--red);
+}
+
 /* ── Modal header actions (toggle + close) ──────────────── */
 .modal-header-actions {
   display: flex;

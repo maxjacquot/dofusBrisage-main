@@ -15,7 +15,7 @@ export function FarmerTab({ farmerItems, onRemove, onRemoveAll }: FarmerTabProps
     <div className="farmer-tab">
       <div className="farmer-tab-header">
         <span className="farmer-tab-count">{farmerItems.length} item{farmerItems.length > 1 ? 's' : ''} à farmer</span>
-        <button className="reset-inprogress-btn" onClick={onRemoveAll}>Tout retirer</button>
+        <button className="reset-inprogress-btn" onClick={onRemoveAll}>Vider la liste à farmer</button>
       </div>
       <div className="items-list">
         {farmerItems.map(item => (
