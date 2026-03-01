@@ -246,6 +246,10 @@ body {
   border-bottom: 2px solid var(--border0);
 }
 
+.tabs-spacer {
+  flex: 1;
+}
+
 .tab {
   background: transparent;
   border: none;

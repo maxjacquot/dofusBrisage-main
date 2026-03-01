@@ -293,15 +293,18 @@ function App() {
                 Calculateur craft
                 {itemsWithRecipe.length > 0 && <span className="tab-count">{itemsWithRecipe.length}</span>}
               </button>
-              <button className={`tab${tab === 'items' ? ' tab--active' : ''}`} onClick={() => setTab('items')}>
-                Prix des ressources
-                {uniqueResources.length > 0 && <span className="tab-count">{uniqueResources.length}</span>}
-              </button>
               <button className={`tab${tab === 'brisage' ? ' tab--active' : ''}`} onClick={() => setTab('brisage')}>
                 Brisage en cours
                 {inProgressList.length > 0 && <span className="tab-count tab-count--green">{inProgressList.length}</span>}
               </button>
             </>)}
+            <span className="tabs-spacer" />
+            {searched && !loading && items.length > 0 && (
+              <button className={`tab${tab === 'items' ? ' tab--active' : ''}`} onClick={() => setTab('items')}>
+                Prix des ressources
+                {uniqueResources.length > 0 && <span className="tab-count">{uniqueResources.length}</span>}
+              </button>
+            )}
             <button className={`tab${tab === 'farmer' ? ' tab--active' : ''}`} onClick={() => setTab('farmer')}>
               À farmer
               {farmerItems.length > 0 && <span className="tab-count tab-count--orange">{farmerItems.length}</span>}
