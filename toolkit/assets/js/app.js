@@ -3,6 +3,7 @@
 /* ================================================================
    CONSTANTS (shared across all modules)
 ================================================================ */
+const VERSION = '1.2.0';
 const API = 'https://api.dofusdu.de/dofus3/v1/fr';
 const TAX = 0.02;   // 2 % taxe HDV
 const SR  = 0.5;    // success rate FM

@@ -1991,9 +1991,9 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
   const headersBrisage = `
     <th>#</th><th>Item</th><th class="tc">Niv.</th>
     <th class="tr" title="Coefficient de brisage">Coeff.</th>
-    <th class="tr" title="Runes Ba estimées à coeff. serveur 100%">Runes Ba est.</th>
+    <th class="tr" title="Runes Ba générées estimées à coeff. serveur 100% — Formule : Coeff. × Niveau × 0,015">Runes Ba</th>
     <th class="tr">Coût craft</th>
-    <th class="tr">${runePrice > 0 ? 'Valeur brisage' : '—'}</th>
+    <th class="tr" title="Valeur totale des runes Ba générées (Runes Ba × prix rune saisi)">${runePrice > 0 ? 'Revenus runes' : '—'}</th>
     <th class="tr">Marge</th>
     <th class="tr">ROI</th>
     <th class="tc">Détail</th>`;

@@ -717,10 +717,92 @@
   Données : <a href="https://api.dofusdu.de" target="_blank" rel="noopener">DofusDude API</a> (api.dofusdu.de) &mdash;
   Stats : <a href="https://huzounet.fr/equipments" target="_blank" rel="noopener">Huzounet</a> &mdash;
   Outil non officiel, usage personnel. Les calculs FM sont des <strong>estimations statistiques</strong>.
+  <div style="margin-top:.45rem">
+    <span id="footer-version" style="color:var(--gold-muted);font-weight:700"></span>
+    &mdash;
+    <button onclick="document.getElementById('changelog-modal').style.display='flex'"
+            style="background:none;border:none;color:var(--gold-muted);cursor:pointer;font-family:inherit;font-size:.73rem;padding:0;text-decoration:underline">
+      📋 Changelog
+    </button>
+  </div>
 </footer>
+
+<!-- ======= MODAL CHANGELOG ======= -->
+<div id="changelog-modal" class="icfg-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="icfg-box" style="max-width:600px;max-height:82vh;display:flex;flex-direction:column">
+    <div class="icfg-head">
+      <span>📋 Changelog — Dofus 3 Toolkit</span>
+      <button class="icfg-close" onclick="document.getElementById('changelog-modal').style.display='none'">✕</button>
+    </div>
+    <div id="changelog-content" style="padding:1.25rem;font-size:.84rem;color:var(--text-300);line-height:1.75;overflow-y:auto"></div>
+  </div>
+</div>
 
 <script src="assets/js/app.js"></script>
 <script src="assets/js/craft-fm.js"></script>
 <script src="assets/js/stats.js"></script>
+
+<script>
+/* ── Version & Changelog ── */
+(function () {
+  /* Affiche la version dans le footer */
+  const vEl = document.getElementById('footer-version');
+  if (vEl && typeof VERSION !== 'undefined') vEl.textContent = 'v' + VERSION;
+
+  const CHANGELOG = [
+    {
+      version: '1.2.0', date: '2026-03-01',
+      items: [
+        '✨ Onglet Brisage : classement basé sur la valeur des runes générées (Runes Ba × prix rune)',
+        '✨ Filtre par type d\'item (Bijoux, Armes…) utilisant les données DofusDude réelles',
+        '✨ Fusion Amulettes + Anneaux → option "Bijoux" dans le filtre de type',
+        '✨ Champ "Prix Rune Ba" pour calculer les revenus de brisage estimés',
+        '🐛 Noms de stats corrigés dans STAT_PA : Dommage, Soin, Invocation, % Critique…',
+        '🐛 Lecture de is_meta corrigée (ef.type?.is_meta)',
+        '🔧 Colonnes renommées : "Runes Ba" et "Revenus runes" plus clairs',
+        '🔧 Unités clarifiées partout : kamas (au lieu de ka / Mk)',
+        '🔧 Export brisage : sauvegarde {pa, type, level} par item pour un filtrage précis',
+        '🔧 Export brisage : requêtes séquentielles + retry anti-429',
+        '🔧 Système de versioning et changelog',
+      ]
+    },
+    {
+      version: '1.1.0', date: '2026-02-15',
+      items: [
+        '✨ Onglet Brisage : classement des items par coefficient de brisage',
+        '✨ Script export brisage avec pagination DofusDude (41 pages × 100 items)',
+        '✨ Données enrichies : type et niveau stockés avec le coefficient',
+        '🔧 Poids de rune dans STAT_PA / POIDS calés sur les vraies valeurs Dofus',
+        '🔧 Coefficient serveur dans le calcul des runes Ba estimées',
+      ]
+    },
+    {
+      version: '1.0.0', date: '2026-02-01',
+      items: [
+        '🚀 Version initiale : Craft, FM/Brisage, Stocks, Stuff, Stats Méta',
+        '✨ Classement craft → vente avec budget et tri ROI / marge / coût',
+        '✨ Intégration DofusDude API et prix Imagiro (HDV)',
+        '✨ Calcul coefficient de brisage et estimation des runes Ba',
+        '✨ Simulateur FM (Forgemagie) avec probabilités par statistique',
+      ]
+    },
+  ];
+
+  const content = document.getElementById('changelog-content');
+  if (content) {
+    content.innerHTML = CHANGELOG.map(v => `
+      <div style="margin-bottom:1.6rem">
+        <div style="font-size:.95rem;font-weight:700;color:var(--gold-main);margin-bottom:.5rem">
+          v${v.version}
+          <span style="font-size:.75rem;color:var(--text-500);font-weight:400;margin-left:.4rem">${v.date}</span>
+        </div>
+        <ul style="margin:0;padding-left:1.3rem">
+          ${v.items.map(i => `<li style="margin-bottom:.2rem">${i}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('');
+  }
+}());
+</script>
 </body>
 </html>
