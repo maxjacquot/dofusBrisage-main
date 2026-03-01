@@ -313,21 +313,17 @@ body {
 }
 
 .reset-inprogress-btn {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: 1px solid var(--border1);
+  background: #c0392b;
+  border: 1px solid #c0392b;
   border-radius: 6px;
-  color: var(--text2);
+  color: #fff;
   font-size: 0.78rem;
   cursor: pointer;
   padding: 0.25rem 0.6rem;
-  transition: color 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.reset-inprogress-btn:hover { color: var(--text0); border-color: var(--text2); }
+.reset-inprogress-btn:hover { background: #a93226; border-color: #a93226; }
 
 .name-filter-row {
   display: flex;

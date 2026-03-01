@@ -34,7 +34,7 @@ function App() {
   const [modalItemId, setModalItemId] = useState<number | null>(null)
   const [modalBrisageInput, setModalBrisageInput] = useState('')
 
-  const [sortBy, setSortBy] = useState<'level' | 'cost'>('level')
+  const [sortBy, setSortBy] = useState<'level' | 'cost' | 'brisage'>('level')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [nameFilter, setNameFilter] = useState('')
   const [inProgressItems, setInProgressItems] = useState<Set<number>>(
@@ -189,26 +189,30 @@ function App() {
     return na.localeCompare(nb, 'fr')
   })
 
-  function toggleSort(col: 'level' | 'cost') {
+  function toggleSort(col: 'level' | 'cost' | 'brisage') {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortBy(col); setSortDir('asc') }
+  }
+
+  function sortVal(item: EquipmentItem) {
+    if (sortBy === 'level') return item.level
+    if (sortBy === 'cost') return craftTotal(item)
+    return brisageCoefs[item.ankama_id] ?? 0
   }
 
   const normalizedFilter = nameFilter.trim().toLowerCase()
 
   const sortedItems = [...itemsWithRecipe]
     .filter(i => !normalizedFilter || i.name.toLowerCase().includes(normalizedFilter))
-    .sort((a, b) => {
-      const valA = sortBy === 'level' ? a.level : craftTotal(a)
-      const valB = sortBy === 'level' ? b.level : craftTotal(b)
-      return sortDir === 'asc' ? valA - valB : valB - valA
-    })
+    .sort((a, b) => sortDir === 'asc' ? sortVal(a) - sortVal(b) : sortVal(b) - sortVal(a))
 
   const filteredResources = uniqueResources.filter(id =>
     !normalizedFilter || (resources[id]?.name ?? '').toLowerCase().includes(normalizedFilter)
   )
 
-  const inProgressList = itemsWithRecipe.filter(i => inProgressItems.has(i.ankama_id))
+  const inProgressList = [...itemsWithRecipe]
+    .filter(i => inProgressItems.has(i.ankama_id))
+    .sort((a, b) => sortDir === 'asc' ? sortVal(a) - sortVal(b) : sortVal(b) - sortVal(a))
 
   return (
     <div className="app">
@@ -299,6 +303,9 @@ function App() {
             {nameFilter && (
               <button className="name-filter-clear" onClick={() => setNameFilter('')}>✕</button>
             )}
+            {inProgressItems.size > 0 && (
+              <button className="reset-inprogress-btn" onClick={resetInProgress}>Tout retirer</button>
+            )}
           </div>
 
           {/* --- Onglet Craft --- */}
@@ -315,7 +322,9 @@ function App() {
                     <button className={`sort-btn sort-btn--right${sortBy === 'cost' ? ' sort-btn--active' : ''}`} onClick={() => toggleSort('cost')}>
                       Prix craft {sortBy === 'cost' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                     </button>
-                    <span>Coef. brisage</span>
+                    <button className={`sort-btn sort-btn--right${sortBy === 'brisage' ? ' sort-btn--active' : ''}`} onClick={() => toggleSort('brisage')}>
+                      Coef. brisage {sortBy === 'brisage' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                    </button>
                   </div>
                   {sortedItems.map(item => {
                     const total = craftTotal(item)
@@ -457,14 +466,17 @@ function App() {
               ? <p className="empty">Aucun item en cours de brisage.</p>
               : (
                 <div className="items-list">
-                  <div className="inprogress-list-header">
-                    <div className="list-header">
-                      <span>Item</span>
-                      <span>Ressources nécessaires</span>
-                      <span>Prix craft</span>
-                      <span>Coef. brisage</span>
-                    </div>
-                    <button className="reset-inprogress-btn" onClick={resetInProgress}>Tout retirer</button>
+                  <div className="list-header">
+                    <button className={`sort-btn${sortBy === 'level' ? ' sort-btn--active' : ''}`} onClick={() => toggleSort('level')}>
+                      Item {sortBy === 'level' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                    </button>
+                    <span>Ressources nécessaires</span>
+                    <button className={`sort-btn sort-btn--right${sortBy === 'cost' ? ' sort-btn--active' : ''}`} onClick={() => toggleSort('cost')}>
+                      Prix craft {sortBy === 'cost' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                    </button>
+                    <button className={`sort-btn sort-btn--right${sortBy === 'brisage' ? ' sort-btn--active' : ''}`} onClick={() => toggleSort('brisage')}>
+                      Coef. brisage {sortBy === 'brisage' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                    </button>
                   </div>
                   {inProgressList.map(item => {
                     const total = craftTotal(item)
