@@ -269,6 +269,102 @@ body {
   border-bottom-color: var(--gold);
 }
 
+/* ── Badge vert onglet ──────────────────────────────────── */
+.tab-count--green { background: var(--green) !important; color: #000 !important; }
+
+/* ── Bouton toggle brisage en cours ────────────────────── */
+.inprogress-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 2px solid var(--border1);
+  background: transparent;
+  color: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  line-height: 1;
+  padding: 0;
+}
+
+.inprogress-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.inprogress-btn--active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #000;
+}
+
+/* ── Ligne item en cours de brisage ────────────────────── */
+.item-row--inprogress { background: color-mix(in srgb, var(--green) 5%, var(--bg1)); }
+.item-row--inprogress:hover { background: color-mix(in srgb, var(--green) 10%, var(--bg2)); }
+
+/* ── Header liste brisage en cours ─────────────────────── */
+.inprogress-list-header {
+  position: relative;
+}
+
+.reset-inprogress-btn {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 1px solid var(--border1);
+  border-radius: 6px;
+  color: var(--text2);
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0.25rem 0.6rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.reset-inprogress-btn:hover { color: var(--text0); border-color: var(--text2); }
+
+.name-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0 0.5rem;
+}
+
+.name-filter-input {
+  background: var(--bg1);
+  border: 1px solid var(--border1);
+  border-radius: 6px;
+  color: var(--text0);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.88rem;
+  width: 220px;
+  transition: border-color 0.15s;
+}
+
+.name-filter-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.name-filter-clear {
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.name-filter-clear:hover { color: var(--text1); }
+
 .tab-count {
   background: var(--bg3);
   border-radius: 10px;
@@ -403,6 +499,10 @@ body {
 
 .item-name:hover { color: var(--gold); }
 .item-name--copied { color: var(--green) !important; }
+
+.copyable { cursor: pointer; transition: color 0.15s; }
+.copyable:hover { color: var(--gold); }
+.copyable--copied { color: var(--green) !important; }
 
 .item-meta {
   font-size: 0.75rem;

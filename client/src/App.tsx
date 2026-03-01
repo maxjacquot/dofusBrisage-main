@@ -4,7 +4,7 @@ import './App.css'
 const METIERS: { label: string; value: string; types: string[] }[] = [
   { label: 'Tous les métiers', value: '', types: [] },
   { label: 'Bijoutier', value: 'bijoutier', types: ['amulet', 'ring'] },
-  { label: 'Cordonnier', value: 'cordonnier', types: ['hat', 'belt'] },
+  { label: 'Cordonnier', value: 'cordonnier', types: ['boots', 'belt'] },
   { label: 'Forgeron', value: 'forgeron', types: ['hammer', 'sword', 'dagger', 'axe', 'scythe', 'lance'] },
   { label: 'Sculpteur', value: 'sculpteur', types: ['bow', 'wand', 'staff'] },
   { label: 'Tailleur', value: 'tailleur', types: ['cloak', 'hat'] },
@@ -12,6 +12,7 @@ const METIERS: { label: string; value: string; types: string[] }[] = [
 
 const LS_PRICES_KEY = 'dofus-brisage-prices'
 const LS_PRESETS_KEY = 'dofus-brisage-presets'
+const LS_INPROGRESS_KEY = 'dofus-brisage-inprogress'
 const STALE_DAYS = 2
 const SEUIL_KAMAS = 1000 // profit minimum pour qu'un brisage soit intéressant
 
@@ -166,7 +167,7 @@ interface SearchPreset {
   metier: string
 }
 
-type Tab = 'craft' | 'items'
+type Tab = 'craft' | 'items' | 'brisage'
 
 // --- LocalStorage helpers ---
 
@@ -315,6 +316,10 @@ function App() {
 
   const [sortBy, setSortBy] = useState<'level' | 'cost'>('level')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [nameFilter, setNameFilter] = useState('')
+  const [inProgressItems, setInProgressItems] = useState<Set<number>>(
+    () => new Set(ls<number[]>(LS_INPROGRESS_KEY, []))
+  )
 
   // --- Recherche ---
 
@@ -324,6 +329,7 @@ function App() {
     setItems([])
     setResources({})
     setSearched(true)
+    setNameFilter('')
 
     try {
       const params = new URLSearchParams()
@@ -408,6 +414,23 @@ function App() {
     setTimeout(() => setCopiedId(null), 1500)
   }
 
+  // --- Brisage en cours ---
+
+  function toggleInProgress(id: number) {
+    setInProgressItems(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      lsSet(LS_INPROGRESS_KEY, [...next])
+      return next
+    })
+  }
+
+  function resetInProgress() {
+    setInProgressItems(new Set())
+    lsSet(LS_INPROGRESS_KEY, [])
+  }
+
   // --- Presets ---
 
   function savePreset() {
@@ -451,11 +474,21 @@ function App() {
     else { setSortBy(col); setSortDir('asc') }
   }
 
-  const sortedItems = [...itemsWithRecipe].sort((a, b) => {
-    const valA = sortBy === 'level' ? a.level : craftTotal(a)
-    const valB = sortBy === 'level' ? b.level : craftTotal(b)
-    return sortDir === 'asc' ? valA - valB : valB - valA
-  })
+  const normalizedFilter = nameFilter.trim().toLowerCase()
+
+  const sortedItems = [...itemsWithRecipe]
+    .filter(i => !normalizedFilter || i.name.toLowerCase().includes(normalizedFilter))
+    .sort((a, b) => {
+      const valA = sortBy === 'level' ? a.level : craftTotal(a)
+      const valB = sortBy === 'level' ? b.level : craftTotal(b)
+      return sortDir === 'asc' ? valA - valB : valB - valA
+    })
+
+  const filteredResources = uniqueResources.filter(id =>
+    !normalizedFilter || (resources[id]?.name ?? '').toLowerCase().includes(normalizedFilter)
+  )
+
+  const inProgressList = itemsWithRecipe.filter(i => inProgressItems.has(i.ankama_id))
 
   return (
     <div className="app">
@@ -528,6 +561,24 @@ function App() {
               Prix des ressources
               {uniqueResources.length > 0 && <span className="tab-count">{uniqueResources.length}</span>}
             </button>
+            <button className={`tab${tab === 'brisage' ? ' tab--active' : ''}`} onClick={() => setTab('brisage')}>
+              Brisage en cours
+              {inProgressList.length > 0 && <span className="tab-count tab-count--green">{inProgressList.length}</span>}
+            </button>
+          </div>
+
+          {/* Filtre par nom */}
+          <div className="name-filter-row">
+            <input
+              className="name-filter-input"
+              type="text"
+              value={nameFilter}
+              onChange={e => setNameFilter(e.target.value)}
+              placeholder="Filtrer par nom…"
+            />
+            {nameFilter && (
+              <button className="name-filter-clear" onClick={() => setNameFilter('')}>✕</button>
+            )}
           </div>
 
           {/* --- Onglet Craft --- */}
@@ -549,9 +600,15 @@ function App() {
                   {sortedItems.map(item => {
                     const total = craftTotal(item)
                     const copied = copiedId === item.ankama_id
+                    const inProg = inProgressItems.has(item.ankama_id)
                     return (
-                      <div key={item.ankama_id} className="item-row">
+                      <div key={item.ankama_id} className={`item-row${inProg ? ' item-row--inprogress' : ''}`}>
                         <div className="col-name">
+                          <button
+                            className={`inprogress-btn${inProg ? ' inprogress-btn--active' : ''}`}
+                            onClick={() => toggleInProgress(item.ankama_id)}
+                            title={inProg ? 'Retirer du brisage en cours' : 'Marquer en brisage en cours'}
+                          >✓</button>
                           <img className="item-icon" src={item.image_urls.icon} alt="" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                           <div className="item-info">
                             <span
@@ -571,7 +628,13 @@ function App() {
                             return (
                               <div key={r.item_ankama_id} className={`ingredient${stale ? ' ingredient--stale' : ''}`}>
                                 <span className="ingredient-label">
-                                  {resources[r.item_ankama_id]?.name ?? `#${r.item_ankama_id}`}
+                                  <span
+                                    className={`copyable${copiedId === r.item_ankama_id ? ' copyable--copied' : ''}`}
+                                    onClick={() => copyName(resources[r.item_ankama_id]?.name ?? `#${r.item_ankama_id}`, r.item_ankama_id)}
+                                    title="Cliquer pour copier"
+                                  >
+                                    {copiedId === r.item_ankama_id ? '✓ Copié !' : (resources[r.item_ankama_id]?.name ?? `#${r.item_ankama_id}`)}
+                                  </span>
                                   <span className="ingredient-qty"> ×{r.quantity}</span>
                                 </span>
                                 <input
@@ -622,15 +685,15 @@ function App() {
 
           {/* --- Onglet Ressources --- */}
           {tab === 'items' && (
-            uniqueResources.length === 0
-              ? <p className="empty">Aucune ressource trouvée.</p>
+            filteredResources.length === 0
+              ? <p className="empty">{uniqueResources.length === 0 ? 'Aucune ressource trouvée.' : 'Aucun résultat pour ce filtre.'}</p>
               : (
                 <div className="items-list">
                   <div className="list-header list-header--items">
                     <span>Ressource</span>
                     <span>Prix unitaire</span>
                   </div>
-                  {uniqueResources.map(id => {
+                  {filteredResources.map(id => {
                     const name = resources[id]?.name ?? `#${id}`
                     const entry = resourcePrices[id]
                     const stale = entry ? isStale(entry.updatedAt) : false
@@ -660,6 +723,106 @@ function App() {
                               {stale && '⚠ '}Mis à jour {formatDate(entry.updatedAt)}
                             </span>
                           )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+          )}
+
+          {/* --- Onglet Brisage en cours --- */}
+          {tab === 'brisage' && (
+            inProgressList.length === 0
+              ? <p className="empty">Aucun item en cours de brisage.</p>
+              : (
+                <div className="items-list">
+                  <div className="inprogress-list-header">
+                    <div className="list-header">
+                      <span>Item</span>
+                      <span>Ressources nécessaires</span>
+                      <span>Prix craft</span>
+                      <span>Coef. brisage</span>
+                    </div>
+                    <button className="reset-inprogress-btn" onClick={resetInProgress}>Tout retirer</button>
+                  </div>
+                  {inProgressList.map(item => {
+                    const total = craftTotal(item)
+                    const copied = copiedId === item.ankama_id
+                    return (
+                      <div key={item.ankama_id} className="item-row item-row--inprogress">
+                        <div className="col-name">
+                          <button
+                            className="inprogress-btn inprogress-btn--active"
+                            onClick={() => toggleInProgress(item.ankama_id)}
+                            title="Retirer du brisage en cours"
+                          >✓</button>
+                          <img className="item-icon" src={item.image_urls.icon} alt="" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          <div className="item-info">
+                            <span
+                              className={`item-name${copied ? ' item-name--copied' : ''}`}
+                              onClick={() => copyName(item.name, item.ankama_id)}
+                              title="Cliquer pour copier"
+                            >
+                              {copied ? '✓ Copié !' : item.name}
+                            </span>
+                            <span className="item-meta">{item.type.name} · Niv. {item.level}</span>
+                          </div>
+                        </div>
+                        <div className="col-recipe">
+                          {(item.recipe ?? []).map(r => {
+                            const entry = resourcePrices[r.item_ankama_id]
+                            const stale = entry ? isStale(entry.updatedAt) : false
+                            return (
+                              <div key={r.item_ankama_id} className={`ingredient${stale ? ' ingredient--stale' : ''}`}>
+                                <span className="ingredient-label">
+                                  <span
+                                    className={`copyable${copiedId === r.item_ankama_id ? ' copyable--copied' : ''}`}
+                                    onClick={() => copyName(resources[r.item_ankama_id]?.name ?? `#${r.item_ankama_id}`, r.item_ankama_id)}
+                                    title="Cliquer pour copier"
+                                  >
+                                    {copiedId === r.item_ankama_id ? '✓ Copié !' : (resources[r.item_ankama_id]?.name ?? `#${r.item_ankama_id}`)}
+                                  </span>
+                                  <span className="ingredient-qty"> ×{r.quantity}</span>
+                                </span>
+                                <input
+                                  className="price-input"
+                                  type="number"
+                                  min={0}
+                                  value={entry?.price ?? ''}
+                                  onChange={e => setResourcePrice(r.item_ankama_id, e.target.value)}
+                                  placeholder="Prix unit."
+                                />
+                                {entry && (
+                                  <span className={`price-date${stale ? ' price-date--stale' : ''}`}>
+                                    {stale && '⚠ '}Mis à jour {formatDate(entry.updatedAt)}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <div className="col-total">
+                          <span className={total > 0 ? 'total-value' : 'total-empty'}>
+                            {total > 0 ? formatKamas(total) : '—'}
+                          </span>
+                        </div>
+                        <div className="col-brisage">
+                          <div className="col-brisage-row">
+                            <input
+                              className="brisage-input"
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={brisageCoefs[item.ankama_id] ?? ''}
+                              onChange={e => setBrisageCoef(item.ankama_id, e.target.value)}
+                              placeholder="0"
+                            />
+                            <span className="brisage-unit">%</span>
+                          </div>
+                          <button className="calc-brisage-btn" onClick={() => openModal(item)}>
+                            Calculer le brisage
+                          </button>
                         </div>
                       </div>
                     )
@@ -726,7 +889,13 @@ function App() {
               <div className="modal-header">
                 <div className="modal-title-row">
                   <img className="modal-item-icon" src={item.image_urls.icon} alt="" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                  <span className="modal-title">{item.name}</span>
+                  <span
+                    className={`modal-title copyable${copiedId === item.ankama_id ? ' copyable--copied' : ''}`}
+                    onClick={() => copyName(item.name, item.ankama_id)}
+                    title="Cliquer pour copier"
+                  >
+                    {copiedId === item.ankama_id ? '✓ Copié !' : item.name}
+                  </span>
                 </div>
                 <button className="modal-close" onClick={() => setModalItemId(null)}>✕</button>
               </div>
@@ -749,7 +918,14 @@ function App() {
                       return (
                         <div key={r.item_ankama_id} className={`modal-ing-row${isFarmed ? ' modal-ing-row--farmed' : ''}`}>
                           <span className="modal-ing-name">
-                            {name} <span className="ingredient-qty">×{r.quantity}</span>
+                            <span
+                              className={`copyable${copiedId === r.item_ankama_id ? ' copyable--copied' : ''}`}
+                              onClick={() => copyName(name, r.item_ankama_id)}
+                              title="Cliquer pour copier"
+                            >
+                              {copiedId === r.item_ankama_id ? '✓ Copié !' : name}
+                            </span>
+                            {' '}<span className="ingredient-qty">×{r.quantity}</span>
                           </span>
                           <span className="modal-ing-unit-price">
                             {unitPrice > 0 ? formatKamas(unitPrice) : '—'}

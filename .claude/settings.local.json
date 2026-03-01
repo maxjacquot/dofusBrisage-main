@@ -5,7 +5,8 @@
       "Bash(npx vite build)",
       "WebFetch(domain:api.dofusdu.de)",
       "Bash(curl -s \"https://api.dofusdu.de/dofus3/v1/fr/items/resources/22740\")",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(npx tsc --noEmit)"
     ]
   }
 }
