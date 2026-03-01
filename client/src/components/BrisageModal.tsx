@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { SEUIL_KAMAS } from '../constants'
+import { SEUIL_KAMAS, STAT_TO_RUNE_BA } from '../constants'
 import { isBrisageCoefStale, getBrisageCoefDateStr, getRunePriceEntry, saveRunePrice, isRunePriceStale } from '../storage'
 import { formatDate, formatKamas, computeStatBrisage } from '../utils'
 import type { EquipmentItem, ResourceInfo, PricesStore, PriceEntry, FarmerItem } from '../types'
@@ -31,6 +31,15 @@ export function BrisageModal({
 }: BrisageModalProps) {
   const [brisageInput, setBrisageInput] = useState(String(brisageCoef ?? ''))
   const [runePrices, setRunePrices] = useState<Record<string, PriceEntry>>({})
+  const [copiedRune, setCopiedRune] = useState<string | null>(null)
+
+  function copyRuneName(statName: string) {
+    const runeName = STAT_TO_RUNE_BA[statName]
+    if (!runeName) return
+    navigator.clipboard.writeText(runeName)
+    setCopiedRune(statName)
+    setTimeout(() => setCopiedRune(null), 1500)
+  }
 
   useEffect(() => {
     const prices: Record<string, PriceEntry> = {}
@@ -139,7 +148,7 @@ export function BrisageModal({
           <div className="modal-top-row">
             <div className="modal-field">
               <span className="modal-label">Prix de craft</span>
-              <span className="modal-value">{total > 0 ? formatKamas(total) : '—'}</span>
+              <span className="modal-value">{formatKamas(total)}</span>
               <span className="modal-seuil">Coef min rentable : <strong>{coefSeuil !== null ? `${Math.ceil(coefSeuil)}%` : '—'}</strong></span>
             </div>
             <div className="modal-field">
@@ -186,7 +195,7 @@ export function BrisageModal({
                 <span>Stat</span>
                 <span>Valeur</span>
                 <span>Prix rune (Ba)</span>
-                <span>Runes / Valeur focus</span>
+                <span>Valeur focus</span>
               </div>
               {stats.map(d => {
                 const entry = runePrices[d.name]
@@ -195,7 +204,13 @@ export function BrisageModal({
                 const isBest = bestOption?.key === d.name
                 return (
                   <div key={d.name} className={`modal-stats-row${isBest ? ' modal-stats-row--best' : ''}`}>
-                    <span className="modal-stat-name">{d.name}</span>
+                    <span
+                      className={`modal-stat-name${STAT_TO_RUNE_BA[d.name] ? ' copyable' : ''}${copiedRune === d.name ? ' copyable--copied' : ''}`}
+                      onClick={() => copyRuneName(d.name)}
+                      title={STAT_TO_RUNE_BA[d.name] ? `Copier "${STAT_TO_RUNE_BA[d.name]}"` : undefined}
+                    >
+                      {copiedRune === d.name ? '✓ Copié !' : d.name}
+                    </span>
                     <span className="modal-stat-val">
                       <span>
                         {d.min === d.max
