@@ -1727,13 +1727,13 @@ function renderBrisage(item, ingredients, itemCached) {
               ${margin !== null ? (margin >= 0 ? '+' : '') + fmtKa(margin) : '—'}
             </div>
           </div>
-          <div class="sum-stat" title="Coefficient de brisage : somme des poids de rune de chaque stat. Multipliez par (niveau × 0,015) pour estimer les runes Ba générées à coeff serveur 100%.">
+          <div class="sum-stat" title="Coefficient de brisage : somme des poids de rune de chaque stat. Multipliez par (niveau × 0,015) pour estimer les runes générées à coeff serveur 100%.">
             <div class="sum-label">💎 Coefficient de brisage</div>
             <div class="sum-val" style="font-size:1.1rem">${brisagePA != null ? brisagePA : '—'}</div>
           </div>
           ${brisagePA != null && item.level ? `
-          <div class="sum-stat" title="Estimation des runes Ba générées à coefficient serveur 100%. Formule : coefficient × niveau × 0,015">
-            <div class="sum-label">🎲 Runes Ba estimées (coeff 100%)</div>
+          <div class="sum-stat" title="Runes générées estimées à coeff. serveur 100%. Formule : coefficient × niveau × 0,015">
+            <div class="sum-label">🎲 Runes générées (coeff 100%)</div>
             <div class="sum-val" style="font-size:1rem">${Math.round(brisagePA * item.level * 0.0150)}</div>
           </div>` : ''}
         </div>
@@ -1748,7 +1748,7 @@ function renderBrisage(item, ingredients, itemCached) {
 
         <div class="bri-note">
           ℹ️ <strong>Coefficient de brisage</strong> = somme des poids de rune de chaque stat (indépendant du niveau).
-          <strong>Runes Ba estimées</strong> = Coefficient × niveau × 0,015 à coeff. serveur 100% — le coefficient serveur réel varie de 1% à 4000% selon l'activité de brisage.
+          <strong>Runes générées</strong> = Coefficient × niveau × 0,015 à coeff. serveur 100% — le coefficient serveur réel varie de 1% à 4000% selon l'activité de brisage.
           Multipliez les runes obtenues par leurs prix HDV pour connaître la valeur en kamas.
         </div>
       </div>
@@ -1991,9 +1991,9 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
   const headersBrisage = `
     <th>#</th><th>Item</th><th class="tc">Niv.</th>
     <th class="tr" title="Coefficient de brisage">Coeff.</th>
-    <th class="tr" title="Runes Ba générées estimées à coeff. serveur 100% — Formule : Coeff. × Niveau × 0,015">Runes Ba</th>
+    <th class="tr" title="Runes générées estimées à coeff. serveur 100% — Formule : Coeff. × Niveau × 0,015">Runes générées</th>
     <th class="tr">Coût craft</th>
-    <th class="tr" title="Valeur totale des runes Ba générées (Runes Ba × prix rune saisi)">${runePrice > 0 ? 'Revenus runes' : '—'}</th>
+    <th class="tr" title="Valeur totale des runes générées (quantité × prix rune saisi)">${runePrice > 0 ? 'Revenus runes' : '—'}</th>
     <th class="tr">Marge</th>
     <th class="tr">ROI</th>
     <th class="tc">Détail</th>`;
@@ -2054,7 +2054,7 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
     <div style="padding:.5rem;font-size:.72rem;color:var(--text-500);text-align:center">
       ${rows.length} items analysés · top ${top.length} affiché${top.length > 1 ? 's' : ''}
       · budget ${budget === Infinity ? 'illimité' : fmtKa(budget)}
-      ${mode === 'brisage' && runePrice === 0 ? ' · <em>Entrez un prix de Rune Ba pour voir la marge et le ROI</em>' : ''}
+      ${mode === 'brisage' && runePrice === 0 ? ' · <em>Entrez un prix de rune pour voir la marge et le ROI</em>' : ''}
     </div>
   `;
 
