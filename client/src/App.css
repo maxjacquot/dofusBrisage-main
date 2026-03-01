@@ -305,6 +305,27 @@ body {
   text-align: right;
 }
 
+.sort-btn {
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color 0.15s;
+}
+
+.sort-btn--right {
+  text-align: right;
+}
+
+.sort-btn:hover { color: var(--text0); }
+
+.sort-btn--active { color: var(--gold); }
+
 .item-row {
   display: grid;
   grid-template-columns: 230px 1fr 130px 160px;

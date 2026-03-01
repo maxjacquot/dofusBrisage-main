@@ -313,6 +313,9 @@ function App() {
   const [modalItemId, setModalItemId] = useState<number | null>(null)
   const [modalBrisageInput, setModalBrisageInput] = useState('')
 
+  const [sortBy, setSortBy] = useState<'level' | 'cost'>('level')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
   // --- Recherche ---
 
   async function handleSearch() {
@@ -443,6 +446,17 @@ function App() {
     return na.localeCompare(nb, 'fr')
   })
 
+  function toggleSort(col: 'level' | 'cost') {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortBy(col); setSortDir('asc') }
+  }
+
+  const sortedItems = [...itemsWithRecipe].sort((a, b) => {
+    const valA = sortBy === 'level' ? a.level : craftTotal(a)
+    const valB = sortBy === 'level' ? b.level : craftTotal(b)
+    return sortDir === 'asc' ? valA - valB : valB - valA
+  })
+
   return (
     <div className="app">
       <h1 className="title">Dofus Brisage</h1>
@@ -523,12 +537,16 @@ function App() {
               : (
                 <div className="items-list">
                   <div className="list-header">
-                    <span>Item</span>
+                    <button className={`sort-btn${sortBy === 'level' ? ' sort-btn--active' : ''}`} onClick={() => toggleSort('level')}>
+                      Item {sortBy === 'level' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                    </button>
                     <span>Ressources nécessaires</span>
-                    <span className="col-total-header">Prix craft</span>
+                    <button className={`sort-btn sort-btn--right${sortBy === 'cost' ? ' sort-btn--active' : ''}`} onClick={() => toggleSort('cost')}>
+                      Prix craft {sortBy === 'cost' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                    </button>
                     <span>Coef. brisage</span>
                   </div>
-                  {itemsWithRecipe.map(item => {
+                  {sortedItems.map(item => {
                     const total = craftTotal(item)
                     const copied = copiedId === item.ankama_id
                     return (
