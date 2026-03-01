@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Dofus Toolkit — Bridge Setup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #08080f; color: #f5e8c8;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 2rem;
+  }
+  .card {
+    background: #161628; border: 1px solid rgba(200,168,75,.2);
+    border-radius: 12px; padding: 2rem; max-width: 640px; width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  }
+  h1 { font-size: 1.3rem; color: #f2d96a; margin-bottom: .4rem; }
+  .sub { color: #7a6228; font-size: .8rem; margin-bottom: 1.5rem; }
+  .step {
+    display: flex; gap: 1rem; align-items: flex-start;
+    margin-bottom: 1.25rem; padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(80,60,40,.2);
+  }
+  .step:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #2e2010; border: 2px solid #7a6228;
+    color: #c8a84b; font-weight: 700; font-size: .85rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-body h3 { font-size: .95rem; color: #c8a84b; margin-bottom: .3rem; }
+  .step-body p  { font-size: .82rem; color: #b09070; line-height: 1.6; }
+  .bookmarklet-wrap {
+    margin-top: .65rem;
+    background: #0d0d1a; border: 1px solid rgba(200,168,75,.15);
+    border-radius: 8px; padding: .75rem; display: flex; align-items: center; gap: .75rem;
+  }
+  .bm-link {
+    display: inline-block;
+    padding: .45rem 1rem; border-radius: 6px;
+    background: linear-gradient(135deg, #2e1a00, #4a2e00);
+    border: 2px solid #c8a84b; color: #f2d96a;
+    text-decoration: none; font-weight: 700; font-size: .85rem;
+    cursor: grab; white-space: nowrap;
+  }
+  .bm-link:hover { background: linear-gradient(135deg, #4a2e00, #6a4400); }
+  .bm-hint { font-size: .74rem; color: #48404a; }
+  .status {
+    margin-top: 1.5rem; padding: .75rem 1rem; border-radius: 8px;
+    font-size: .82rem; text-align: center;
+    background: rgba(10,42,26,.4); border: 1px solid #1a6640; color: #4dde8a;
+  }
+  .status.err { background: rgba(80,10,10,.4); border-color: #662020; color: #e05252; }
+  .btn {
+    display: block; width: 100%; margin-top: 1rem; padding: .55rem;
+    background: linear-gradient(135deg, #0a2a1a, #0f3520);
+    border: 1px solid #1a6640; color: #4dde8a; border-radius: 8px;
+    font-size: .85rem; font-weight: 700; cursor: pointer;
+  }
+  .btn:hover { background: linear-gradient(135deg, #0f3520, #164d2e); }
+  code {
+    background: #0d0d1a; border: 1px solid rgba(200,168,75,.15);
+    padding: .1rem .35rem; border-radius: 4px; font-size: .85em; color: #c8a84b;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔗 Dofus Toolkit — Bridge imagiro</h1>
+  <p class="sub">Permet au toolkit de récupérer les prix HDV en temps réel depuis imagiro.laboubourse.com</p>
+
+  <div class="step">
+    <div class="num">1</div>
+    <div class="step-body">
+      <h3>Ouvrir imagiro dans votre navigateur</h3>
+      <p>
+        Allez sur
+        <a href="https://imagiro.laboubourse.com" target="_blank"
+           style="color:#c8a84b">imagiro.laboubourse.com</a>
+        et laissez l'onglet ouvert pendant que vous utilisez le toolkit.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">2</div>
+    <div class="step-body">
+      <h3>Activer le bridge sur la page imagiro</h3>
+      <p>Faites glisser ce bouton dans votre barre de favoris, puis cliquez dessus depuis l'onglet imagiro :</p>
+      <div class="bookmarklet-wrap">
+        <a class="bm-link" id="bm-link" href="#">🔗 Dofus Bridge</a>
+        <span class="bm-hint">← Glissez ce bouton dans votre barre de favoris</span>
+      </div>
+      <p style="margin-top:.5rem">
+        Ou collez ce code dans la console DevTools de l'onglet imagiro (<code>F12</code> → Console) :
+      </p>
+      <pre style="margin-top:.4rem;padding:.55rem;background:#0d0d1a;border-radius:6px;font-size:.72rem;color:#7a6228;overflow-x:auto;line-height:1.5" id="bridge-code"></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">3</div>
+    <div class="step-body">
+      <h3>Vérifier la connexion</h3>
+      <p>Cliquez sur le bouton ci-dessous pour tester que le bridge répond :</p>
+      <button class="btn" onclick="testBridge()">🧪 Tester la connexion</button>
+      <div id="bridge-status" class="status" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BRIDGE_SNIPPET = `(function(){
+  if(window._dofusBridgeActive){console.log('Bridge déjà actif');return;}
+  window._dofusBridgeActive=true;
+  const ch=new BroadcastChannel('dofus-price-bridge');
+  ch.onmessage=async(e)=>{
+    if(e.data?.type!=='getprices')return;
+    const{reqId,path}=e.data;
+    try{const r=await fetch('/api'+path);const d=await r.json();ch.postMessage({type:'prices',reqId,data:d});}
+    catch(err){ch.postMessage({type:'error',reqId,message:err.message});}
+  };
+  console.log('🔗 Dofus Toolkit Bridge actif');
+})();`;
+
+/* Injecte le code dans le lien bookmarklet */
+document.getElementById('bm-link').href = 'javascript:' + encodeURIComponent(BRIDGE_SNIPPET);
+document.getElementById('bridge-code').textContent = BRIDGE_SNIPPET;
+
+function testBridge() {
+  const st = document.getElementById('bridge-status');
+  st.style.display = 'block';
+  st.className = 'status';
+  st.textContent = '⏳ Test en cours…';
+
+  const ch    = new BroadcastChannel('dofus-price-bridge');
+  const reqId = Math.random().toString(36).slice(2);
+  const timer = setTimeout(() => {
+    ch.close();
+    st.className = 'status err';
+    st.textContent = '❌ Pas de réponse — vérifiez que le bridge est actif sur l\'onglet imagiro.';
+  }, 4500);
+
+  ch.onmessage = evt => {
+    if (evt.data?.reqId !== reqId) return;
+    clearTimeout(timer); ch.close();
+    if (evt.data.type === 'prices') {
+      const sample = evt.data.data?.[0];
+      st.className = 'status';
+      st.innerHTML = sample
+        ? `✅ Bridge actif ! Exemple : <strong>${sample.name}</strong> → ${sample.price_1?.toLocaleString('fr-FR')} kamas`
+        : '✅ Bridge actif (aucun prix retourné pour l\'item de test).';
+    } else {
+      st.className = 'status err';
+      st.textContent = '⚠️ Bridge actif mais erreur : ' + (evt.data.message || 'inconnue');
+    }
+  };
+  ch.postMessage({ type: 'getprices', reqId, path: '/item-price?item_ids=2423' });
+}
+</script>
+</body>
+</html>

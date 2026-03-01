@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dofus 3 — Toolkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ======= HEADER ======= -->
+<header class="app-header">
+  <div class="header-top">
+    <div class="logo">⚒️</div>
+    <div>
+      <div class="app-title">Dofus 3 — Toolkit</div>
+      <div class="app-sub">Craft · FM · Stocks · Stuff · Stats Méta</div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="craft">
+      🔨 <span class="tab-label">Craft</span>
+    </button>
+    <button class="tab-btn" data-tab="fm">
+      ⚒️ <span class="tab-label">Brisage / FM</span>
+    </button>
+    <button class="tab-btn" data-tab="sv">
+      💰 <span class="tab-label">Stocks &amp; Ventes</span>
+    </button>
+    <button class="tab-btn" data-tab="stuff">
+      🛡️ <span class="tab-label">Stuff</span>
+    </button>
+    <button class="tab-btn" data-tab="stats">
+      📊 <span class="tab-label">Stats Méta</span>
+    </button>
+    <button class="tab-btn" data-tab="item-meta">
+      🔎 <span class="tab-label">Analyse Item</span>
+    </button>
+    <button class="tab-btn imagiro-cfg-btn" id="imagiro-cfg-open" title="Configurer les prix HDV (imagiro)" onclick="imagiroOpenConfig()">
+      💹 <span class="tab-label" id="imagiro-cfg-dot">Prix HDV ●</span>
+    </button>
+  </nav>
+</header>
+
+<!-- ======= MAIN ======= -->
+<main class="app-main">
+
+  <!-- ===== CRAFT ===== -->
+  <section id="module-craft" class="module active">
+    <div class="search-wrap">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="craft-search"
+               placeholder="Rechercher un item craftable…" autocomplete="off">
+        <button class="search-clear" id="craft-clear">✕</button>
+      </div>
+      <div class="search-drop" id="craft-drop"></div>
+    </div>
+    <div id="craft-content">
+      <div class="placeholder">
+        <div class="placeholder-icon">🔨</div>
+        <h3>Module Craft</h3>
+        <p>Recherchez un item craftable pour analyser sa rentabilité</p>
+      </div>
+    </div>
+    <div id="craft-objectives"></div>
+    <div id="craft-history-section"></div>
+
+    <!-- ── Reverse Craft ── -->
+    <div id="ir-section">
+      <div class="sec" style="margin-top:2rem">🔍 Reverse Craft — Où est utilisé cet ingrédient ?</div>
+      <div class="ir-steps">
+
+        <div class="ir-step">
+          <div class="ir-step-label">① Ingrédient à traquer</div>
+          <div class="search-wrap" style="margin-bottom:.5rem">
+            <div class="search-box">
+              <span class="search-icon">🧪</span>
+              <input type="text" class="search-input" id="ir-ing-input"
+                     placeholder="Rechercher une ressource…" autocomplete="off">
+              <button class="search-clear" id="ir-ing-clear">✕</button>
+            </div>
+            <div class="search-drop" id="ir-ing-drop"></div>
+          </div>
+          <div id="ir-ing-card"></div>
+        </div>
+
+        <div class="ir-step" id="ir-equip-step" style="display:none">
+          <div class="ir-step-label">② Ajouter des équipements à vérifier</div>
+          <div class="search-wrap" style="margin-bottom:0">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" class="search-input" id="ir-equip-input"
+                     placeholder="Rechercher un équipement…" autocomplete="off">
+              <button class="search-clear" id="ir-equip-clear">✕</button>
+            </div>
+            <div class="search-drop" id="ir-equip-drop"></div>
+          </div>
+        </div>
+
+      </div>
+      <div id="ir-results"></div>
+    </div>
+
+  </section>
+
+  <!-- ===== BRISAGE / FM ===== -->
+  <section id="module-fm" class="module">
+
+    <!-- ── Sous-onglets ── -->
+    <div class="fm-subtabs">
+      <button class="fm-stab active" data-stab="brisage">💎 Brisage</button>
+      <button class="fm-stab" data-stab="craft-vente">🔨 Craft → Vente</button>
+      <button class="fm-stab" data-stab="fm">✨ Forgemagie</button>
+    </div>
+
+    <!-- ══════════════ BRISAGE ══════════════ -->
+    <div id="stab-brisage" class="stab-panel active">
+
+      <!-- Ranking panel -->
+      <div class="bri-rank-panel" id="bri-rank-panel">
+        <div class="bri-rank-head">
+          <span class="card-title">🏆 Classement Brisage</span>
+          <span id="bri-rank-cache-info" class="bri-cache-badge"></span>
+        </div>
+
+        <div class="bri-filters">
+          <div class="bri-filter-group">
+            <label>💰 Budget max (kamas)</label>
+            <input type="number" class="inp-text bri-inp" id="bri-budget" placeholder="ex: 50000" min="0" step="1000">
+          </div>
+          <div class="bri-filter-group">
+            <label>🔎 Filtrer par type</label>
+            <select class="inp-text bri-inp" id="bri-type-filter">
+              <option value="all">Tous les types</option>
+              <option value="Arme">Armes</option>
+              <option value="Amulette">Amulettes</option>
+              <option value="Anneau">Anneaux</option>
+              <option value="Ceinture">Ceintures</option>
+              <option value="Bottes">Bottes</option>
+              <option value="Cape">Capes</option>
+              <option value="Chapeau">Chapeaux</option>
+              <option value="Bouclier">Boucliers</option>
+            </select>
+          </div>
+          <div class="bri-filter-group">
+            <label>📊 Trier par</label>
+            <select class="inp-text bri-inp" id="bri-sort">
+              <option value="roi">ROI (marge / coût)</option>
+              <option value="margin">Marge absolue</option>
+              <option value="cost">Coût craft</option>
+            </select>
+          </div>
+          <div class="bri-filter-group" style="align-self:flex-end">
+            <button class="btn" id="bri-rank-btn" onclick="briRankItems()">🚀 Calculer le classement</button>
+          </div>
+        </div>
+
+        <div id="bri-rank-results">
+          <div class="placeholder" style="margin-top:1rem">
+            <div class="placeholder-icon">💾</div>
+            <h3>Cache requis</h3>
+            <p>Téléchargez d'abord le cache des prix via <strong>💹 Prix HDV ●</strong> → "Télécharger tous les prix".</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculateur item individuel -->
+      <div class="sec" style="margin-top:1.5rem">🔍 Calculateur Brisage — Item individuel</div>
+      <div class="search-wrap">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="bri-search"
+                 placeholder="Rechercher un item craftable…" autocomplete="off">
+          <button class="search-clear" id="bri-clear">✕</button>
+        </div>
+        <div class="search-drop" id="bri-drop"></div>
+      </div>
+      <div id="bri-content">
+        <div class="placeholder">
+          <div class="placeholder-icon">💎</div>
+          <h3>Calculateur Brisage</h3>
+          <p>Recherchez un item craftable pour calculer sa rentabilité de brisage</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ CRAFT → VENTE ══════════════ -->
+    <div id="stab-craft-vente" class="stab-panel">
+
+      <div class="bri-rank-panel">
+        <div class="bri-rank-head">
+          <span class="card-title">🔨 Classement Craft → Vente</span>
+          <span id="cv-rank-cache-info" class="bri-cache-badge"></span>
+        </div>
+
+        <div class="bri-filters">
+          <div class="bri-filter-group">
+            <label>💰 Budget max craft (kamas)</label>
+            <input type="number" class="inp-text bri-inp" id="cv-budget" placeholder="ex: 50000" min="0" step="1000">
+          </div>
+          <div class="bri-filter-group">
+            <label>📈 Prix HDV minimum (kamas)</label>
+            <input type="number" class="inp-text bri-inp" id="cv-min-price" placeholder="ex: 10000" min="0" step="1000">
+          </div>
+          <div class="bri-filter-group">
+            <label>🔎 Filtrer par type</label>
+            <select class="inp-text bri-inp" id="cv-type-filter">
+              <option value="all">Tous les types</option>
+              <option value="Arme">Armes</option>
+              <option value="Amulette">Amulettes</option>
+              <option value="Anneau">Anneaux</option>
+              <option value="Ceinture">Ceintures</option>
+              <option value="Bottes">Bottes</option>
+              <option value="Cape">Capes</option>
+              <option value="Chapeau">Chapeaux</option>
+              <option value="Bouclier">Boucliers</option>
+            </select>
+          </div>
+          <div class="bri-filter-group">
+            <label>📊 Trier par</label>
+            <select class="inp-text bri-inp" id="cv-sort">
+              <option value="roi">ROI (marge / coût)</option>
+              <option value="margin">Marge absolue</option>
+              <option value="cost">Coût craft</option>
+            </select>
+          </div>
+          <div class="bri-filter-group" style="align-self:flex-end">
+            <button class="btn" id="cv-rank-btn" onclick="cvRankItems()">🚀 Calculer le classement</button>
+          </div>
+        </div>
+
+        <div id="cv-rank-results">
+          <div class="placeholder" style="margin-top:1rem">
+            <div class="placeholder-icon">🔨</div>
+            <h3>Craft → Vente directe</h3>
+            <p>Classement des items les plus rentables à crafter et revendre sur l'HDV.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ FM ══════════════ -->
+    <div id="stab-fm" class="stab-panel">
+      <div class="search-wrap" style="margin-top:.5rem">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="fm-search"
+                 placeholder="Rechercher un item équipable…" autocomplete="off">
+          <button class="search-clear" id="fm-clear">✕</button>
+        </div>
+        <div class="search-drop" id="fm-drop"></div>
+      </div>
+      <div id="fm-content">
+        <div class="placeholder">
+          <div class="placeholder-icon">✨</div>
+          <h3>Module Forgemagie</h3>
+          <p>Recherchez un item équipable pour estimer le coût de forgemagie</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== STOCKS & VENTES ===== -->
+  <section id="module-sv" class="module">
+
+    <div class="sum-grid" style="margin-bottom:1.5rem">
+      <div class="sum-stat hl">
+        <div class="sum-label">Valeur du stock</div>
+        <div class="sum-val gold" id="sv-d-val">0 kamas</div>
+      </div>
+      <div class="sum-stat">
+        <div class="sum-label">Articles en stock</div>
+        <div class="sum-val" id="sv-d-items">0</div>
+      </div>
+      <div class="sum-stat">
+        <div class="sum-label">Chiffre d'affaires</div>
+        <div class="sum-val" id="sv-d-ca">—</div>
+      </div>
+      <div class="sum-stat" id="sv-d-profit-card">
+        <div class="sum-label">Profit net total</div>
+        <div class="sum-val" id="sv-d-profit">—</div>
+      </div>
+    </div>
+
+    <div class="sv-two">
+      <div class="card" style="align-self:start">
+        <div class="card-head"><span class="card-title">📦 Ajouter au stock</span></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>Nom de l'item</label>
+            <div class="search-wrap" style="margin-bottom:0">
+              <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="sv-name"
+                       placeholder="Rechercher un item…" autocomplete="off">
+                <button class="search-clear" id="sv-name-clear">✕</button>
+              </div>
+              <div class="search-drop" id="sv-name-drop"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Quantité</label>
+            <input type="number" class="inp-text" id="sv-qty" placeholder="1" min="1" step="1">
+          </div>
+          <div class="form-group">
+            <label>Coût d'achat total (kamas)</label>
+            <input type="number" class="inp-text" id="sv-cost" placeholder="0" min="0" step="1">
+          </div>
+          <button class="btn-primary" id="sv-add-btn">＋ Ajouter au stock</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">📋 Stock actuel</span>
+          <span id="sv-stock-count" style="font-size:.73rem;color:var(--text-500)">0 article(s)</span>
+        </div>
+        <div id="sv-stock-wrap">
+          <div class="empty-notice">Aucun article en stock.<br>Ajoutez votre premier item !</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sell-panel" id="sv-sell-panel">
+      <div class="sell-panel-title">
+        💸 Enregistrer une vente —
+        <strong id="sp-item-name" style="color:var(--gold-main)"></strong>
+        <span id="sp-stock-info" style="margin-left:.5rem"></span>
+      </div>
+      <div class="sell-panel-row">
+        <div class="form-group">
+          <label>Quantité vendue</label>
+          <input type="number" class="inp-text" id="sp-qty" min="1" step="1" placeholder="1">
+        </div>
+        <div class="form-group" style="flex:2">
+          <label>Prix de vente HDV total (kamas)</label>
+          <input type="number" class="inp-text" id="sp-price" min="0" step="1" placeholder="0">
+        </div>
+        <div class="sell-panel-btns">
+          <button class="btn-primary" id="sp-confirm" style="width:auto;padding:.45rem 1.4rem;font-size:.8rem">✓ Confirmer</button>
+          <button class="btn-sm del" id="sp-cancel" style="padding:.42rem .9rem">Annuler</button>
+        </div>
+      </div>
+      <div class="sell-result" id="sp-result">
+        <span>Taxe 2 % : <strong id="sp-taxe">—</strong></span>
+        <span>Net reçu : <strong id="sp-net">—</strong></span>
+        <span>Coût stock : <strong id="sp-cost-d">—</strong></span>
+        <span>Profit : <strong class="s-profit" id="sp-profit">—</strong></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">📈 Historique des ventes</span>
+        <button class="del-hist-btn" id="sv-clear-hist">Tout effacer</button>
+      </div>
+      <div id="sv-history-wrap">
+        <div class="empty-notice">Aucune vente enregistrée.</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== STUFF ===== -->
+  <section id="module-stuff" class="module">
+
+    <div class="stuff-bar">
+      <input type="text" class="stuff-build-name" id="stuff-build-name" placeholder="Nom du build…" value="Build 1">
+      <button class="btn-stuffsave" id="stuff-save-btn">💾 Sauvegarder</button>
+      <select class="builds-sel" id="stuff-builds-sel">
+        <option value="">— Charger un build —</option>
+      </select>
+      <button class="btn-stuffnew" id="stuff-new-btn">＋ Nouveau</button>
+      <button class="btn-sm del" id="stuff-del-btn" style="margin-left:auto" title="Supprimer ce build">🗑</button>
+    </div>
+
+    <div class="slot-srch-panel" id="slot-srch-panel">
+      <div class="slot-srch-lbl" id="slot-srch-lbl">🔍 Recherche pour <strong>…</strong></div>
+      <div class="search-wrap" style="margin-bottom:0">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="stuff-search"
+                 placeholder="Nom de l'item…" autocomplete="off">
+          <button class="search-clear" id="stuff-clear">✕</button>
+        </div>
+        <div class="search-drop" id="stuff-drop"></div>
+      </div>
+    </div>
+
+    <div class="stuff-layout">
+      <div>
+        <div class="sec-title">Équipements</div>
+        <div class="slot-grid" id="stuff-slots-equip"></div>
+        <div class="sec-title">Dofus &amp; Trophées</div>
+        <div class="slot-grid" id="stuff-slots-dofus"></div>
+        <div class="sec-title">Divers</div>
+        <div class="slot-grid" id="stuff-slots-misc"></div>
+      </div>
+      <div class="stuff-stats">
+        <div class="stuff-stats-title">📊 Caractéristiques</div>
+        <div id="stuff-stats-body">
+          <div style="text-align:center;color:var(--text-500);font-size:.8rem;padding:1rem 0">
+            Cliquez sur un emplacement pour ajouter un item.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== STATS META ===== -->
+  <section id="module-stats" class="module">
+
+    <!-- Stats sub-header -->
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem">
+      <div class="dump-chip" id="stats-dumpChip">Aucun dump chargé</div>
+      <button class="btn" id="stats-btnChange">📂 Changer</button>
+      <input type="file" id="stats-fileInputChange" accept=".json" style="display:none">
+    </div>
+
+    <!-- Load screen -->
+    <div id="stats-loadScreen">
+      <div class="load-icon">📊</div>
+      <div class="load-title">Stats Méta Huzounet</div>
+      <div class="load-sub">
+        Chargement automatique… <span class="spin" id="stats-autoSpin"></span><br>
+        <span id="stats-autoMsg"></span>
+      </div>
+      <label class="file-drop" for="stats-fileInput" id="stats-fileDrop" style="display:none">
+        <div class="file-drop-icon">📂</div>
+        <div class="file-drop-text">Ouvrir un dump JSON</div>
+        <div class="file-drop-hint">dump_YYYY-MM-DD.json généré par scraper_huzounet.py</div>
+      </label>
+      <input type="file" id="stats-fileInput" accept=".json">
+    </div>
+
+    <!-- Content -->
+    <div id="stats-content">
+
+      <!-- Filter bar -->
+      <div class="stats-filter-bar" id="stats-filterBar">
+        <div class="filter-group">
+          <span class="filter-lbl">Mode</span>
+          <div class="filter-pills">
+            <button class="fpill active" data-fkey="mode" data-fval="all">Tous</button>
+            <button class="fpill" data-fkey="mode" data-fval="pvm">⚔️ PvM</button>
+            <button class="fpill" data-fkey="mode" data-fval="pvp">🗡️ PvP</button>
+          </div>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group">
+          <span class="filter-lbl">Budget</span>
+          <div class="filter-pills">
+            <button class="fpill active" data-fkey="budget" data-fval="all">Tous</button>
+            <button class="fpill" data-fkey="budget" data-fval="high">High</button>
+            <button class="fpill" data-fkey="budget" data-fval="mid">Mid</button>
+            <button class="fpill" data-fkey="budget" data-fval="low">Low</button>
+          </div>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group">
+          <span class="filter-lbl">Élément</span>
+          <div class="filter-pills" id="stats-filterElem">
+            <button class="fpill active" data-fkey="elem" data-fval="all">Tous</button>
+          </div>
+        </div>
+        <div class="filter-result" id="stats-filterResult"></div>
+      </div>
+
+      <!-- Insights -->
+      <div class="sec">⚡ Insights rapides</div>
+      <div class="insights-row" id="stats-insightsRow"></div>
+
+      <!-- KPIs -->
+      <div class="sec">🏆 Vue d'ensemble</div>
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-ico">⚔️</div>
+          <div class="kpi-lbl">Total builds</div>
+          <div class="kpi-val" id="stats-kTotal">—</div>
+          <div class="kpi-sub" id="stats-kTotalSub"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-ico">🎭</div>
+          <div class="kpi-lbl">Classes</div>
+          <div class="kpi-val" id="stats-kClasses">—</div>
+          <div class="kpi-sub" id="stats-kClassesSub"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-ico">🧩</div>
+          <div class="kpi-lbl">Items uniques</div>
+          <div class="kpi-val" id="stats-kItems">—</div>
+          <div class="kpi-sub" id="stats-kItemsSub"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-ico">🥇</div>
+          <div class="kpi-lbl">Item le + porté</div>
+          <div class="kpi-val sm" id="stats-kTopItem">—</div>
+          <div class="kpi-sub" id="stats-kTopItemSub"></div>
+        </div>
+      </div>
+
+      <!-- Distributions -->
+      <div class="sec">🎯 Distributions</div>
+      <div class="row row-3">
+        <div class="chart-card">
+          <div class="chart-ttl">⚔️ Mode de jeu</div>
+          <div class="h160"><canvas id="stats-cMode"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-ttl">💰 Budget</div>
+          <div class="h160"><canvas id="stats-cBudget"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-ttl">🌡️ Éléments</div>
+          <div class="h160"><canvas id="stats-cElem"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Builds par classe -->
+      <div class="sec">🎭 Builds par classe</div>
+      <div class="row row-1">
+        <div class="chart-card">
+          <div class="chart-ttl">
+            Nombre de builds disponibles par classe
+            <span class="chart-sub">trié par popularité</span>
+          </div>
+          <div class="h280"><canvas id="stats-cClasses"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Éléments PvM vs PvP -->
+      <div class="sec">🌊 Éléments · PvM vs PvP</div>
+      <div class="row row-21">
+        <div class="chart-card">
+          <div class="chart-ttl">Comparaison PvM / PvP par élément</div>
+          <div class="h280"><canvas id="stats-cElemModes"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-ttl">🗓️ Niveau dominant</div>
+          <div class="h280"><canvas id="stats-cLevels"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Top items -->
+      <div class="sec">🏆 Top 20 items les plus portés</div>
+      <div class="row row-1">
+        <div class="chart-card">
+          <div class="chart-ttl">
+            Fréquence d'apparition — tous slots confondus
+            <span class="chart-sub" id="stats-topItemsSub"></span>
+          </div>
+          <div class="h480"><canvas id="stats-cTopItems"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Top par slot -->
+      <div class="sec">🎒 Méta par slot</div>
+      <div class="stats-slots-grid" id="stats-slotsGrid"></div>
+
+      <!-- Arme méta par classe -->
+      <div class="sec">⚔️ Arme méta par classe</div>
+      <div class="row row-21">
+        <div class="tbl-wrap">
+          <table class="meta-tbl">
+            <thead>
+              <tr>
+                <th>#</th><th>Classe</th><th>Arme méta</th>
+                <th>Nb builds</th><th>% classe</th>
+              </tr>
+            </thead>
+            <tbody id="stats-tblWeapons"></tbody>
+          </table>
+        </div>
+        <div class="chart-card">
+          <div class="chart-ttl">Armes méta · vue globale</div>
+          <div class="h360"><canvas id="stats-cWeapons"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Budget × Mode -->
+      <div class="sec">💰 Budget selon le mode de jeu</div>
+      <div class="row row-1">
+        <div class="chart-card">
+          <div class="chart-ttl">Répartition budget LOW / MID / HIGH — PvM vs PvP</div>
+          <div class="h220"><canvas id="stats-cBudgetMode"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ── Analyse par Classe ───────────────────── -->
+      <div class="sec">🎭 Analyse par Classe</div>
+      <div id="stats-classSection"></div>
+
+      <!-- ── Analyse par Élément ──────────────────── -->
+      <div class="sec">🌊 Analyse par Élément</div>
+      <div id="stats-elemSection"></div>
+
+      <!-- ── Matrice Classe × Élément ─────────────── -->
+      <div class="sec">📊 Matrice Classe × Élément</div>
+      <div class="matrix-scroll" id="stats-matrixWrap"></div>
+
+    </div><!-- /stats-content -->
+  </section>
+
+  <!-- ===== ANALYSE ITEM ===== -->
+  <section id="module-item-meta" class="module">
+
+    <!-- État : dump non chargé -->
+    <div id="im-no-dump" class="placeholder">
+      <div class="placeholder-icon">📊</div>
+      <h3>Dump non chargé</h3>
+      <p>Chargez d'abord le dump dans <strong>Stats Méta</strong> pour utiliser cet outil.</p>
+      <button class="btn" style="margin-top:.75rem"
+        onclick="document.querySelector('.tab-btn[data-tab=stats]').click()">→ Ouvrir Stats Méta</button>
+    </div>
+
+    <!-- État : dump chargé -->
+    <div id="im-ready" style="display:none">
+
+      <div class="search-wrap">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="im-input"
+                 placeholder="Nom d'un item présent dans le dump…" autocomplete="off">
+          <button class="search-clear" id="im-clear">✕</button>
+        </div>
+        <div class="search-drop" id="im-drop"></div>
+      </div>
+
+      <div id="im-results">
+        <div class="placeholder" style="margin-top:2rem">
+          <div class="placeholder-icon">🔎</div>
+          <h3>Recherchez un item</h3>
+          <p>Tapez le nom d'un équipement pour voir dans quels builds il apparaît,<br>quelles typologies l'utilisent et quelle tranche de level le requiert.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+<!-- ======= MODAL CONFIG IMAGIRO ======= -->
+<div id="imagiro-cfg-modal" class="icfg-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="icfg-box">
+    <div class="icfg-head">
+      <span>⚙️ Prix HDV — Configuration proxy</span>
+      <button class="icfg-close" onclick="document.getElementById('imagiro-cfg-modal').style.display='none'">✕</button>
+    </div>
+
+    <div id="icfg-status-bar" class="icfg-status-bar">⏳ Vérification du proxy…</div>
+
+    <div class="icfg-section">
+      <div class="icfg-label">Étapes de configuration</div>
+      <ol class="icfg-steps">
+        <li>Lancez le proxy dans un terminal :<br>
+          <code>node proxy.js</code>
+        </li>
+        <li>Ouvrez <a href="https://imagiro.laboubourse.com" target="_blank">imagiro.laboubourse.com</a> dans Chrome</li>
+        <li>F12 → Application → Cookies → <code>cf_clearance</code> → copiez la valeur</li>
+        <li>Collez-la ci-dessous et cliquez Enregistrer</li>
+      </ol>
+    </div>
+
+    <div class="icfg-section">
+      <label class="icfg-lbl">cf_clearance <span style="color:var(--text-500)">(requis)</span></label>
+      <input type="text" id="icfg-cf" class="icfg-input" placeholder="Coller ici la valeur cf_clearance…">
+    </div>
+    <div class="icfg-section">
+      <label class="icfg-lbl">auth-token <span style="color:var(--text-500)">(optionnel)</span></label>
+      <input type="text" id="icfg-auth" class="icfg-input" placeholder="Optionnel — pour accéder aux données authentifiées">
+    </div>
+
+    <div class="icfg-btns">
+      <button class="btn" id="icfg-save-btn" onclick="imagiroSaveConfig()">💾 Enregistrer &amp; tester</button>
+      <button class="btn-sm" onclick="imagiroCheckProxy()">🔄 Statut</button>
+    </div>
+    <div id="icfg-result" style="margin-top:.75rem;font-size:.8rem;min-height:1.2em"></div>
+
+    <div class="icfg-section" style="border-top:1px solid var(--border-gold)">
+      <div class="icfg-label">Cache des prix HDV</div>
+      <div id="icfg-dump-status" class="icfg-dump-status">⏳ Vérification…</div>
+      <div style="display:flex;gap:.6rem;margin-top:.65rem;flex-wrap:wrap">
+        <button class="btn imagiro-btn" id="icfg-dump-btn" onclick="imagiroDumpPrices()" style="font-size:.8rem">
+          📥 Via proxy (localhost)
+        </button>
+        <label class="btn imagiro-btn" style="font-size:.8rem;cursor:pointer" title="Importer un fichier exporté depuis imagiro.laboubourse.com">
+          📂 Importer un fichier JSON
+          <input type="file" id="icfg-import-file" accept=".json" style="display:none">
+        </label>
+        <button class="btn-sm" onclick="imagiroClearDump()" style="font-size:.72rem">🗑 Effacer</button>
+      </div>
+      <div style="margin-top:.55rem;font-size:.74rem;color:var(--text-500)">
+        💡 Si le proxy est bloqué par Cloudflare →
+        <a href="export.html" target="_blank" style="color:var(--gold-muted);text-decoration:underline">ouvrir la page d'export</a>
+        (à lancer depuis imagiro.laboubourse.com)
+      </div>
+      <div id="icfg-dump-progress" style="margin-top:.5rem;display:none">
+        <div class="icfg-prog-bar"><div class="icfg-prog-fill" id="icfg-prog-fill"></div></div>
+        <div id="icfg-prog-label" style="font-size:.72rem;color:var(--text-300);margin-top:.25rem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= FOOTER ======= -->
+<footer class="app-footer">
+  Données : <a href="https://api.dofusdu.de" target="_blank" rel="noopener">DofusDude API</a> (api.dofusdu.de) &mdash;
+  Stats : <a href="https://huzounet.fr/equipments" target="_blank" rel="noopener">Huzounet</a> &mdash;
+  Outil non officiel, usage personnel. Les calculs FM sont des <strong>estimations statistiques</strong>.
+</footer>
+
+<script src="assets/js/app.js"></script>
+<script src="assets/js/craft-fm.js"></script>
+<script src="assets/js/stats.js"></script>
+</body>
+</html>

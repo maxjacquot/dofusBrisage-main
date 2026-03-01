@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Dofus Toolkit — Export prix imagiro</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #08080f; color: #f5e8c8;
+    min-height: 100vh; padding: 2rem;
+  }
+  .card {
+    background: #161628; border: 1px solid rgba(200,168,75,.2);
+    border-radius: 12px; padding: 2rem; max-width: 780px; margin: 0 auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  }
+  h1 { font-size: 1.25rem; color: #f2d96a; margin-bottom: .3rem; }
+  .sub { color: #7a6228; font-size: .8rem; margin-bottom: 1.5rem; }
+  .step {
+    display: flex; gap: 1rem; align-items: flex-start;
+    margin-bottom: 1.25rem; padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(80,60,40,.2);
+  }
+  .step:last-of-type { border-bottom: none; margin-bottom: 0; }
+  .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #2e2010; border: 2px solid #7a6228;
+    color: #c8a84b; font-weight: 700; font-size: .85rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body h3 { font-size: .95rem; color: #c8a84b; margin-bottom: .35rem; }
+  .step-body p  { font-size: .82rem; color: #b09070; line-height: 1.6; }
+  pre {
+    margin-top: .5rem; padding: .75rem 1rem;
+    background: #0a0a18; border: 1px solid rgba(200,168,75,.12);
+    border-radius: 8px; font-size: .74rem; color: #8af0c0;
+    overflow-x: auto; line-height: 1.6; white-space: pre;
+    max-height: 220px; overflow-y: auto;
+    position: relative;
+  }
+  .copy-btn {
+    display: inline-block; margin-top: .5rem; padding: .4rem 1rem;
+    background: linear-gradient(135deg, #0a2a1a, #0f3520);
+    border: 1px solid #1a6640; border-radius: 6px;
+    color: #4dde8a; font-size: .82rem; font-weight: 700; cursor: pointer;
+    transition: background .15s;
+  }
+  .copy-btn:hover { background: linear-gradient(135deg, #0f3520, #164d2e); }
+  .copy-btn.copied { background: #0f3520; color: #2fff80; }
+  code {
+    background: #0d0d1a; border: 1px solid rgba(200,168,75,.15);
+    padding: .1rem .35rem; border-radius: 4px; font-size: .85em; color: #c8a84b;
+  }
+  .warn {
+    background: rgba(224,144,48,.07); border: 1px solid rgba(224,144,48,.2);
+    border-radius: 8px; padding: .65rem 1rem; font-size: .8rem; color: #b09070;
+    margin-bottom: 1.25rem; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>📤 Export des prix imagiro → Dofus Toolkit</h1>
+  <p class="sub">Contournement Cloudflare : exécute le script directement depuis ton navigateur sur imagiro.laboubourse.com</p>
+
+  <div class="warn">
+    ⚠️ <strong>Pourquoi cette page ?</strong> imagiro.laboubourse.com utilise le Cloudflare Managed Challenge (Turnstile).
+    Ce système bloque Node.js et curl au niveau TLS, même avec un <code>cf_clearance</code> valide.
+    La seule solution fiable est d'exécuter les requêtes <em>depuis un vrai navigateur</em> déjà authentifié.
+  </div>
+
+  <div class="step">
+    <div class="num">1</div>
+    <div class="step-body">
+      <h3>Ouvrir imagiro dans Chrome</h3>
+      <p>
+        Va sur <a href="https://imagiro.laboubourse.com" target="_blank" style="color:#c8a84b">imagiro.laboubourse.com</a>
+        et assure-toi d'être connecté (la page principale doit charger normalement).
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">2</div>
+    <div class="step-body">
+      <h3>Ouvrir la console DevTools</h3>
+      <p>Appuie sur <code>F12</code> → onglet <strong>Console</strong></p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">3</div>
+    <div class="step-body">
+      <h3>Coller et exécuter ce script</h3>
+      <p>Copie le code ci-dessous, colle-le dans la console, puis appuie sur <strong>Entrée</strong>.</p>
+      <button class="copy-btn" id="copy-btn" onclick="copyScript()">📋 Copier le script</button>
+      <pre id="script-display"></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">4</div>
+    <div class="step-body">
+      <h3>Télécharger les fichiers JSON</h3>
+      <p>
+        Le script télécharge automatiquement un fichier <code>imagiro-prices.json</code>
+        (et <code>imagiro-craft-data.json</code> si disponible).
+        La progression s'affiche dans la console.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">5</div>
+    <div class="step-body">
+      <h3>Importer dans le toolkit</h3>
+      <p>
+        Dans le Dofus Toolkit → <strong>💹 Prix HDV</strong> → cliquer sur
+        <strong>📂 Importer un fichier JSON</strong> → sélectionner <code>imagiro-prices.json</code>.
+        Faire de même pour <code>imagiro-craft-data.json</code> si téléchargé.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section Coefficients Brisage ── -->
+<div class="card" style="margin-top:1.5rem">
+  <h1>💎 Coefficients de brisage — Export DofusDude</h1>
+  <p class="sub">Calcule le coefficient PA de chaque item craftable via l'API DofusDude. À exécuter depuis n'importe quelle page (pas forcément imagiro).</p>
+
+  <div class="warn">
+    ⚠️ Ce script fait ~4 700 requêtes vers <code>api.dofusdu.de</code> (par batch de 10 avec délai).
+    Durée estimée : <strong>2–3 minutes</strong>. Laisse le script tourner jusqu'à la fin.
+    Le résultat est un fichier <code>imagiro-brisage-coeffs.json</code> à importer dans le toolkit.
+  </div>
+
+  <div class="step">
+    <div class="num">1</div>
+    <div class="step-body">
+      <h3>Ouvrir une console DevTools (F12) sur n'importe quelle page web</h3>
+      <p>Idéalement sur <a href="https://imagiro.laboubourse.com" target="_blank" style="color:#c8a84b">imagiro.laboubourse.com</a> (craft-data déjà accessible).</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">2</div>
+    <div class="step-body">
+      <h3>Coller et exécuter ce script</h3>
+      <p>Le script récupère craft-data depuis imagiro, puis calcule le coefficient brisage (poids PA) de chaque item via DofusDude.</p>
+      <button class="copy-btn" id="copy-bri-btn" onclick="copyBrisageScript()">📋 Copier le script brisage</button>
+      <pre id="brisage-script-display" style="max-height:180px"></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">3</div>
+    <div class="step-body">
+      <h3>Importer <code>imagiro-brisage-coeffs.json</code> dans le toolkit</h3>
+      <p>
+        <strong>💹 Prix HDV</strong> → <strong>📂 Importer un fichier JSON</strong> → sélectionner <code>imagiro-brisage-coeffs.json</code>.
+        Le toolkit reconnaît automatiquement le format coefficients.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const EXPORT_SCRIPT = `(async function dofusExport() {
+  const log = m => console.log('[DofusExport]', m);
+  const dl  = (name, data) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  log('📡 Récupération des catégories…');
+  const cats = await fetch('/api/hdv/categories').then(r => r.json());
+  log(\`   \${cats.length} catégories trouvées\`);
+
+  const prices = {};
+  for (let i = 0; i < cats.length; i++) {
+    const cat = cats[i];
+    log(\`   [\${i+1}/\${cats.length}] \${cat.name || cat.category_id}\`);
+    try {
+      const raw   = await fetch(\`/api/hdv/items?category_id=\${cat.category_id}&limit=1000\`).then(r => r.json());
+      const items = Array.isArray(raw) ? raw : (raw?.items || []);
+      items.forEach(it => {
+        prices[+it.item_id] = {
+          p1: it.price_1||0, p10: it.price_10||0, p100: it.price_100||0,
+          avg: it.price_avg||0, date: it.inserted_at||'', name: it.name||''
+        };
+      });
+    } catch(e) { log(\`   ⚠️ Erreur catégorie \${cat.category_id}: \${e.message}\`); }
+    await new Promise(r => setTimeout(r, 80));
+  }
+
+  const dump = { ts: Date.now(), count: Object.keys(prices).length, prices };
+  log(\`✅ \${dump.count} prix collectés — téléchargement…\`);
+  dl('imagiro-prices.json', dump);
+
+  try {
+    log('📋 Récupération des recettes de craft…');
+    const craftData = await fetch('/api/craft-data').then(r => r.json());
+    if (Array.isArray(craftData)) {
+      dl('imagiro-craft-data.json', craftData);
+      log(\`✅ craft-data : \${craftData.length} recettes téléchargées\`);
+    }
+  } catch(e) { log('⚠️ craft-data non disponible : ' + e.message); }
+
+  log('🏁 Export terminé ! Importe les fichiers dans le Dofus Toolkit.');
+})();`;
+
+document.getElementById('script-display').textContent = EXPORT_SCRIPT;
+
+function copyScript() {
+  navigator.clipboard.writeText(EXPORT_SCRIPT).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ Copié !';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copier le script'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+
+/* ── Script Coefficients Brisage ── */
+const BRISAGE_SCRIPT = `(async function dofusBrisage() {
+  const log = m => console.log('[BrisageExport]', m);
+  const dl  = (name, data) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  /* Poids PA par stat — noms exacts retournés par l'API DofusDude */
+  const POIDS = {
+    /* Élémentaires */
+    'Force': 1, 'Intelligence': 1, 'Agilité': 1, 'Chance': 1,
+    /* Secondaires */
+    'Vitalité': 0.2, 'Sagesse': 3, 'Prospection': 3, 'Puissance': 2, 'Pods': 0.25,
+    /* Combat */
+    'PA': 100, 'PM': 90, 'Portée': 51, 'Initiative': 0.1,
+    'Invocation': 30,            /* API: "Invocation" (singulier) */
+    '% Critique': 10,            /* API: "% Critique" (pas "% Chance Critique") */
+    'Soin': 10,                  /* API: "Soin" (singulier) */
+    /* Dommages génériques */
+    'Dommage': 20,               /* API: "Dommage" (singulier) */
+    /* Dommages élémentaires — bonus stat (majuscule singulier) */
+    'Dommage Feu': 5, 'Dommage Eau': 5, 'Dommage Terre': 5,
+    'Dommage Air': 5, 'Dommage Neutre': 5,
+    /* Dommages élémentaires — bonus arme (minuscule pluriel) */
+    'dommages Feu': 5, 'dommages Eau': 5, 'dommages Neutre': 5, 'dommages Air': 5,
+    /* Dommages spéciaux */
+    'Dommage Critiques': 5, 'Dommage Poussée': 5,
+    /* Résistances fixes */
+    'Résistance Neutre': 2, 'Résistance Feu': 2, 'Résistance Eau': 2,
+    'Résistance Terre': 2, 'Résistance Air': 2,
+    'Résistance Critiques': 2, 'Résistance Poussée': 2,
+    /* Résistances % */
+    '% Résistance Neutre': 6, '% Résistance Feu': 6, '% Résistance Eau': 6,
+    '% Résistance Terre': 6, '% Résistance Air': 6,
+    /* Tacle / Fuite */
+    'Tacle': 4, 'Fuite': 4,
+    /* Esquive / Retrait PA-PM */
+    'Retrait PA': 7, 'Esquive PA': 7, 'Retrait PM': 7, 'Esquive PM': 7,
+  };
+
+  function calcPA(effects) {
+    if (!effects?.length) return null;
+    let total = 0;
+    for (const ef of effects) {
+      if (ef.type?.is_meta) continue;
+      const val = Math.abs(ef.int_maximum || ef.int_minimum || 0);
+      const w   = POIDS[ef.type?.name];
+      if (w != null && val > 0) total += val * w;
+    }
+    return total > 0 ? Math.round(total) : null;
+  }
+
+  const API   = 'https://api.dofusdu.de/dofus3/v1/fr';
+  const DELAY = 90; // ms entre chaque requête (séquentiel = pas de 429)
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ── Phase 1 : craft-data depuis imagiro ── */
+  log('📋 Récupération craft-data depuis imagiro…');
+  let craftData;
+  try {
+    craftData = await fetch('/api/craft-data').then(r => r.json());
+  } catch(e) { log('❌ craft-data introuvable : ' + e.message); return; }
+  if (!Array.isArray(craftData)) { log('❌ craft-data invalide'); return; }
+  log(\`   \${craftData.length} items craft trouvés.\`);
+
+  /* ── Phase 2 : liste tous les IDs d'équipements via pagination ── */
+  log('🗂️  Pagination liste équipements DofusDude…');
+  const equipSet = new Set();
+  let page = 1;
+  while (true) {
+    try {
+      const r = await fetch(\`\${API}/items/equipment?page%5Bnumber%5D=\${page}&page%5Bsize%5D=100\`);
+      if (!r.ok) break;
+      const d = await r.json();
+      (d.items || []).forEach(it => equipSet.add(it.ankama_id));
+      if (!d._links?.next) break;
+      page++;
+      await sleep(DELAY);
+    } catch { break; }
+  }
+  log(\`   \${equipSet.size} équipements recensés (\${page} pages).\`);
+
+  /* ── Phase 3 : fetch détails séquentiel + retry sur 429 ── */
+  const toFetch = craftData.filter(c => equipSet.has(c.itemID));
+  log(\`   \${toFetch.length} craftables équipements — \${craftData.length - toFetch.length} non-équipements ignorés.\`);
+
+  const coeffs = {};
+  let done = 0, skipped = 0;
+
+  for (let i = 0; i < toFetch.length; i++) {
+    const craft = toFetch[i];
+    if (i > 0 && i % 250 === 0)
+      log(\`   \${i}/\${toFetch.length} (\${done} coefficients calculés)…\`);
+
+    let attempts = 0;
+    while (attempts < 4) {
+      try {
+        const r = await fetch(\`\${API}/items/equipment/\${craft.itemID}\`);
+        if (r.status === 429) {
+          attempts++;
+          const wait = 5000 * attempts;
+          log(\`   ⏳ 429 sur \${craft.Name} — attente \${wait/1000}s (essai \${attempts}/4)…\`);
+          await sleep(wait);
+          continue;
+        }
+        if (!r.ok) { skipped++; break; }
+        const item = await r.json();
+        const pa = calcPA(item.effects);
+        if (pa != null) { coeffs[craft.itemID] = pa; done++; }
+        else skipped++;
+        break;
+      } catch { skipped++; break; }
+    }
+    await sleep(DELAY);
+  }
+
+  log(\`✅ \${done} coefficients calculés, \${skipped} items sans stats.\`);
+  dl('imagiro-brisage-coeffs.json', coeffs);
+  log('🏁 Téléchargé ! Importe imagiro-brisage-coeffs.json dans le toolkit (💹 → 📂 Importer).');
+})();`;
+
+document.getElementById('brisage-script-display').textContent = BRISAGE_SCRIPT;
+
+function copyBrisageScript() {
+  navigator.clipboard.writeText(BRISAGE_SCRIPT).then(() => {
+    const btn = document.getElementById('copy-bri-btn');
+    btn.textContent = '✅ Copié !';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copier le script brisage'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+</script>
+</body>
+</html>
