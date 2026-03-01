@@ -46,4 +46,9 @@ export interface StatBrisage {
   runesFocus: number
 }
 
-export type Tab = 'craft' | 'items' | 'brisage'
+export interface FarmerItem {
+  ankama_id: number
+  name: string
+}
+
+export type Tab = 'craft' | 'items' | 'brisage' | 'farmer'

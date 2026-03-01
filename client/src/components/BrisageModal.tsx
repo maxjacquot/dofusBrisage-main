@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { SEUIL_KAMAS } from '../constants'
 import { isBrisageCoefStale, getBrisageCoefDateStr, getRunePriceEntry, saveRunePrice, isRunePriceStale } from '../storage'
 import { formatDate, formatKamas, computeStatBrisage } from '../utils'
-import type { EquipmentItem, ResourceInfo, PricesStore, PriceEntry } from '../types'
+import type { EquipmentItem, ResourceInfo, PricesStore, PriceEntry, FarmerItem } from '../types'
 
 interface BrisageModalProps {
   item: EquipmentItem
@@ -10,9 +10,11 @@ interface BrisageModalProps {
   resourcePrices: PricesStore
   brisageCoef: number
   copiedId: number | null
+  farmerResourceIds: Set<number>
   onClose: () => void
   onCopyName: (name: string, id: number) => void
   onSetBrisageCoef: (id: number, value: string) => void
+  onToggleFarmerResource: (r: FarmerItem) => void
 }
 
 export function BrisageModal({
@@ -21,11 +23,12 @@ export function BrisageModal({
   resourcePrices,
   brisageCoef,
   copiedId,
+  farmerResourceIds,
   onClose,
   onCopyName,
   onSetBrisageCoef,
+  onToggleFarmerResource,
 }: BrisageModalProps) {
-  const [farmedResources, setFarmedResources] = useState<Set<number>>(new Set())
   const [brisageInput, setBrisageInput] = useState(String(brisageCoef ?? ''))
   const [runePrices, setRunePrices] = useState<Record<string, PriceEntry>>({})
 
@@ -39,7 +42,7 @@ export function BrisageModal({
   }, [item.ankama_id])
 
   const total = (item.recipe ?? []).reduce((s, r) => {
-    if (farmedResources.has(r.item_ankama_id)) return s
+    if (farmerResourceIds.has(r.item_ankama_id)) return s
     return s + (resourcePrices[r.item_ankama_id]?.price ?? 0) * r.quantity
   }, 0)
 
@@ -96,13 +99,13 @@ export function BrisageModal({
                 <span>Ressources du craft</span>
                 <span className="modal-ing-col-header">Prix unit.</span>
                 <span className="modal-ing-col-header">Valeur totale</span>
-                <span></span>
+                <span className="modal-ing-col-header">À farmer</span>
               </div>
               {(item.recipe ?? []).map(r => {
                 const name = resources[r.item_ankama_id]?.name ?? `#${r.item_ankama_id}`
                 const unitPrice = resourcePrices[r.item_ankama_id]?.price ?? 0
                 const linePrice = unitPrice * r.quantity
-                const isFarmed = farmedResources.has(r.item_ankama_id)
+                const isFarmed = farmerResourceIds.has(r.item_ankama_id)
                 return (
                   <div key={r.item_ankama_id} className={`modal-ing-row${isFarmed ? ' modal-ing-row--farmed' : ''}`}>
                     <span className="modal-ing-name">
@@ -121,17 +124,11 @@ export function BrisageModal({
                     <span className="modal-ing-price">
                       {linePrice > 0 ? formatKamas(linePrice) : '—'}
                     </span>
-                    <button
-                      className={`farm-btn${isFarmed ? ' farm-btn--active' : ''}`}
-                      onClick={() => setFarmedResources(prev => {
-                        const next = new Set(prev)
-                        if (next.has(r.item_ankama_id)) next.delete(r.item_ankama_id)
-                        else next.add(r.item_ankama_id)
-                        return next
-                      })}
-                    >
-                      {isFarmed ? '✓ Farmée' : 'Je farm'}
-                    </button>
+                    <span
+                      className={`farmer-switch${isFarmed ? ' farmer-switch--active' : ''}`}
+                      onClick={() => onToggleFarmerResource({ ankama_id: r.item_ankama_id, name })}
+                      title={isFarmed ? 'Retirer de la liste À farmer' : 'Ajouter à la liste À farmer'}
+                    />
                   </div>
                 )
               })}

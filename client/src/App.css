@@ -983,3 +983,118 @@ body {
   font-size: 0.85rem;
   opacity: 0.85;
 }
+
+/* ── Badge orange onglet À farmer ───────────────────────── */
+.tab-count--orange { background: #f0b429 !important; color: #000 !important; }
+
+/* ── Modal header actions (toggle + close) ──────────────── */
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.farmer-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.farmer-toggle-label {
+  font-size: 0.82rem;
+  color: var(--text2);
+  user-select: none;
+}
+
+.farmer-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  background: var(--bg4);
+  border: 1px solid var(--border1);
+  border-radius: 22px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.farmer-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--text3);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.farmer-switch--active {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.farmer-switch--active::after {
+  transform: translateX(18px);
+  background: #000;
+}
+
+/* Centrage du switch dans les lignes d'ingrédients */
+.modal-ing-row .farmer-switch {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ── Onglet À farmer ─────────────────────────────────────── */
+.farmer-tab {
+  border: 1px solid var(--border0);
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+
+.farmer-tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: var(--bg3);
+}
+
+.farmer-tab-count {
+  font-size: 0.85rem;
+  color: var(--text2);
+}
+
+.farmer-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border0);
+  background: var(--bg1);
+  transition: background 0.15s;
+}
+
+.farmer-item-row:hover { background: var(--bg2); }
+
+.farmer-item-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text0);
+}
+
+.farmer-remove-btn {
+  background: transparent;
+  border: 1px solid var(--border1);
+  border-radius: 6px;
+  color: var(--text3);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.farmer-remove-btn:hover { color: var(--red); border-color: var(--red); background: transparent; }

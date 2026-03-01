@@ -10,6 +10,7 @@ export const METIERS: { label: string; value: string; types: string[] }[] = [
 export const LS_PRICES_KEY = 'dofus-brisage-prices'
 export const LS_PRESETS_KEY = 'dofus-brisage-presets'
 export const LS_INPROGRESS_KEY = 'dofus-brisage-inprogress'
+export const LS_FARMER_KEY = 'dofus-brisage-farmer'
 export const STALE_DAYS = 2
 export const SEUIL_KAMAS = 1000 // profit minimum pour qu'un brisage soit intéressant
 

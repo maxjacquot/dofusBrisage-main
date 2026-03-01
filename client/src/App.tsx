@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import './App.css'
-import { METIERS, LS_PRICES_KEY, LS_PRESETS_KEY, LS_INPROGRESS_KEY } from './constants'
+import { METIERS, LS_PRICES_KEY, LS_PRESETS_KEY, LS_INPROGRESS_KEY, LS_FARMER_KEY } from './constants'
 import { ls, lsSet, loadBrisageCoef, saveBrisageCoef } from './storage'
-import type { EquipmentItem, ResourceInfo, PricesStore, SearchPreset, Tab } from './types'
+import type { EquipmentItem, ResourceInfo, PricesStore, SearchPreset, Tab, FarmerItem } from './types'
 import { BrisageModal } from './components/BrisageModal'
 import { CraftTab } from './components/CraftTab'
 import { BrisageEnCoursTab } from './components/BrisageEnCoursTab'
 import { ResourcesTab } from './components/ResourcesTab'
+import { FarmerTab } from './components/FarmerTab'
 
 function App() {
   const [tab, setTab] = useState<Tab>('craft')
@@ -38,6 +39,7 @@ function App() {
   const [inProgressItems, setInProgressItems] = useState<Set<number>>(
     () => new Set(ls<number[]>(LS_INPROGRESS_KEY, []))
   )
+  const [farmerItems, setFarmerItems] = useState<FarmerItem[]>(() => ls(LS_FARMER_KEY, []))
 
   // --- Recherche ---
 
@@ -110,6 +112,30 @@ function App() {
     navigator.clipboard.writeText(name)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 1500)
+  }
+
+  // --- Items à farmer ---
+
+  function toggleFarmerItem(item: FarmerItem) {
+    setFarmerItems(prev => {
+      const exists = prev.some(i => i.ankama_id === item.ankama_id)
+      const next = exists ? prev.filter(i => i.ankama_id !== item.ankama_id) : [...prev, item]
+      lsSet(LS_FARMER_KEY, next)
+      return next
+    })
+  }
+
+  function removeFarmerItem(id: number) {
+    setFarmerItems(prev => {
+      const next = prev.filter(i => i.ankama_id !== id)
+      lsSet(LS_FARMER_KEY, next)
+      return next
+    })
+  }
+
+  function resetFarmerItems() {
+    setFarmerItems([])
+    lsSet(LS_FARMER_KEY, [])
   }
 
   // --- Brisage en cours ---
@@ -259,20 +285,26 @@ function App() {
       {loadingResources && <p className="loading-res">Chargement des ressources…</p>}
 
       {/* Onglets */}
-      {searched && !loading && items.length > 0 && (
+      {((searched && !loading && items.length > 0) || farmerItems.length > 0) && (
         <>
           <div className="tabs">
-            <button className={`tab${tab === 'craft' ? ' tab--active' : ''}`} onClick={() => setTab('craft')}>
-              Calculateur craft
-              {itemsWithRecipe.length > 0 && <span className="tab-count">{itemsWithRecipe.length}</span>}
-            </button>
-            <button className={`tab${tab === 'items' ? ' tab--active' : ''}`} onClick={() => setTab('items')}>
-              Prix des ressources
-              {uniqueResources.length > 0 && <span className="tab-count">{uniqueResources.length}</span>}
-            </button>
-            <button className={`tab${tab === 'brisage' ? ' tab--active' : ''}`} onClick={() => setTab('brisage')}>
-              Brisage en cours
-              {inProgressList.length > 0 && <span className="tab-count tab-count--green">{inProgressList.length}</span>}
+            {searched && !loading && items.length > 0 && (<>
+              <button className={`tab${tab === 'craft' ? ' tab--active' : ''}`} onClick={() => setTab('craft')}>
+                Calculateur craft
+                {itemsWithRecipe.length > 0 && <span className="tab-count">{itemsWithRecipe.length}</span>}
+              </button>
+              <button className={`tab${tab === 'items' ? ' tab--active' : ''}`} onClick={() => setTab('items')}>
+                Prix des ressources
+                {uniqueResources.length > 0 && <span className="tab-count">{uniqueResources.length}</span>}
+              </button>
+              <button className={`tab${tab === 'brisage' ? ' tab--active' : ''}`} onClick={() => setTab('brisage')}>
+                Brisage en cours
+                {inProgressList.length > 0 && <span className="tab-count tab-count--green">{inProgressList.length}</span>}
+              </button>
+            </>)}
+            <button className={`tab${tab === 'farmer' ? ' tab--active' : ''}`} onClick={() => setTab('farmer')}>
+              À farmer
+              {farmerItems.length > 0 && <span className="tab-count tab-count--orange">{farmerItems.length}</span>}
             </button>
           </div>
 
@@ -324,7 +356,7 @@ function App() {
             />
           )}
 
-          {tab === 'brisage' && (
+          {tab === 'brisage' && searched && items.length > 0 && (
             <BrisageEnCoursTab
               inProgressList={inProgressList}
               resources={resources}
@@ -342,6 +374,14 @@ function App() {
               onOpenModal={item => setModalItemId(item.ankama_id)}
             />
           )}
+
+          {tab === 'farmer' && (
+            <FarmerTab
+              farmerItems={farmerItems}
+              onRemove={removeFarmerItem}
+              onRemoveAll={resetFarmerItems}
+            />
+          )}
         </>
       )}
 
@@ -357,9 +397,11 @@ function App() {
           resourcePrices={resourcePrices}
           brisageCoef={brisageCoefs[modalItem.ankama_id] ?? 0}
           copiedId={copiedId}
+          farmerResourceIds={new Set(farmerItems.map(f => f.ankama_id))}
           onClose={() => setModalItemId(null)}
           onCopyName={copyName}
           onSetBrisageCoef={setBrisageCoef}
+          onToggleFarmerResource={toggleFarmerItem}
         />
       )}
     </div>
