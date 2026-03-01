@@ -323,8 +323,8 @@ function App() {
             {nameFilter && (
               <button className="name-filter-clear" onClick={() => setNameFilter('')}>✕</button>
             )}
-            {inProgressItems.size > 0 && (
-              <button className="reset-inprogress-btn" onClick={resetInProgress}>Tout retirer</button>
+            {inProgressItems.size > 0 && (tab === 'craft' || tab === 'brisage') && (
+              <button className="reset-inprogress-btn" onClick={resetInProgress}>Vider le brisage en cours</button>
             )}
           </div>
 
