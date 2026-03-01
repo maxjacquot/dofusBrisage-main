@@ -1839,17 +1839,17 @@ async function fetchLevelType(id) {
   } catch { return { level: null, type: null, brisagePA: null }; }
 }
 
-async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = null, typeFilterId = null, detailFn = 'briLoadItemById' }) {
+async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = null, typeFilterId = null, detailFn = 'briLoadItemById', mode = 'craftvente', runePriceId = null }) {
   const btn        = document.getElementById(btnId);
   const wrap       = document.getElementById(wrapId);
   const budget     = +(document.getElementById(budgetId)?.value)  || Infinity;
   const sortBy     = document.getElementById(sortId)?.value       || 'roi';
-  const minPrice   = minPriceId   ? (+(document.getElementById(minPriceId)?.value)   || 0) : 0;
-  const typeFilter = typeFilterId ? (document.getElementById(typeFilterId)?.value    || 'all') : 'all';
+  const minPrice   = minPriceId    ? (+(document.getElementById(minPriceId)?.value)    || 0) : 0;
+  const runePrice  = runePriceId   ? (+(document.getElementById(runePriceId)?.value)   || 0) : 0;
+  const typeFilter = typeFilterId  ? (document.getElementById(typeFilterId)?.value     || 'all') : 'all';
 
-  const dump        = getPriceDump();
-  const craftData   = getCraftData();
-  const preComputed = getBrisageCoeffs(); // coefficients pré-calculés via export DofusDude
+  const dump      = getPriceDump();
+  const craftData = getCraftData();
 
   if (!dump) {
     wrap.innerHTML = `<div class="placeholder"><div class="placeholder-icon">💾</div><h3>Cache requis</h3><p>Importez les prix via ⚙️ → "📂 Importer un fichier JSON".</p></div>`;
@@ -1922,91 +1922,139 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
     }
     if (!allPriced || craftCost <= 0 || craftCost > budget) continue;
 
-    const hdvPrice = itemP.p1 || 0;
-    if (!hdvPrice || hdvPrice < minPrice) continue;
+    if (mode === 'brisage') {
+      /* ── Mode Brisage : valeur = runes estimées × prix Rune Ba ── */
+      const bd    = brisageData[itemId];
+      const pa    = bd?.pa    ?? null;
+      const level = bd?.level ?? null;
+      if (pa == null || level == null) continue;   // données requises
 
-    const net = hdvPrice * (1 - TAX) - craftCost;
-    const roi = net / craftCost;
+      const runesEst     = Math.round(pa * level * 0.015);
+      const brisageValue = runePrice > 0 ? runesEst * runePrice : null;
+      const net          = brisageValue != null ? brisageValue - craftCost : null;
+      const roi          = (net != null && craftCost > 0) ? net / craftCost : null;
 
-    rows.push({
-      id: itemId, name: craft.Name || `#${itemId}`,
-      craftCost, hdvPrice, net, roi,
-      level: null, type: null,
-      brisagePA: preComputed[itemId] ?? null,  // pré-calculé si disponible
-    });
+      rows.push({
+        id: itemId, name: craft.Name || `#${itemId}`,
+        craftCost, runesEst, brisageValue, net, roi,
+        level, type: bd?.type || null, brisagePA: pa,
+      });
+
+    } else {
+      /* ── Mode Craft→Vente : valeur = prix HDV ── */
+      const hdvPrice = itemP.p1 || 0;
+      if (!hdvPrice || hdvPrice < minPrice) continue;
+      const net = hdvPrice * (1 - TAX) - craftCost;
+      const roi = net / craftCost;
+      rows.push({
+        id: itemId, name: craft.Name || `#${itemId}`,
+        craftCost, hdvPrice, net, roi,
+        level: null, type: null,
+        brisagePA: brisageData[itemId]?.pa ?? null,
+      });
+    }
   }
 
-  rows.sort((a, b) =>
-    sortBy === 'margin' ? b.net - a.net :
-    sortBy === 'cost'   ? a.craftCost - b.craftCost :
-    b.roi - a.roi
-  );
+  rows.sort((a, b) => {
+    if (mode === 'brisage' && runePrice === 0)
+      return b.runesEst - a.runesEst; // sans prix : trier par runes générées
+    return sortBy === 'margin' ? (b.net ?? -Infinity) - (a.net ?? -Infinity) :
+           sortBy === 'cost'   ? a.craftCost - b.craftCost :
+           (b.roi ?? -Infinity) - (a.roi ?? -Infinity);
+  });
 
   const top = rows.slice(0, 50);
   if (!top.length) {
-    wrap.innerHTML = `<div class="placeholder"><div class="placeholder-icon">🔍</div><h3>Aucun résultat</h3><p>Augmente le budget ou change les filtres.</p></div>`;
+    const hint = mode === 'brisage'
+      ? 'Exportez les coefficients de brisage (💹 → Export), ou augmentez le budget.'
+      : 'Augmentez le budget ou changez les filtres.';
+    wrap.innerHTML = `<div class="placeholder"><div class="placeholder-icon">🔍</div><h3>Aucun résultat</h3><p>${hint}</p></div>`;
     if (btn) { btn.disabled = false; btn.textContent = '🚀 Calculer le classement'; }
     return;
   }
 
-  /* Fetch niveau + type depuis DofusDude pour le top 50 */
-  if (btn) btn.textContent = '⏳ Niveaux…';
-  const ltResults = await Promise.allSettled(top.map(r => fetchLevelType(r.id)));
-  ltResults.forEach((res, i) => {
-    if (res.status === 'fulfilled') {
-      top[i].level = res.value.level;
-      top[i].type  = res.value.type;
-      /* Fallback brisagePA depuis DofusDude si pas encore pré-calculé */
-      if (top[i].brisagePA == null) top[i].brisagePA = res.value.brisagePA ?? null;
+  /* Fetch niveau + type DofusDude pour le top 50 — seulement en mode craft→vente
+     (en mode brisage les données viennent déjà du fichier export) */
+  if (mode === 'craftvente') {
+    if (btn) btn.textContent = '⏳ Niveaux…';
+    const ltResults = await Promise.allSettled(top.map(r => fetchLevelType(r.id)));
+    ltResults.forEach((res, i) => {
+      if (res.status === 'fulfilled') {
+        top[i].level = res.value.level;
+        top[i].type  = res.value.type;
+        if (top[i].brisagePA == null) top[i].brisagePA = res.value.brisagePA ?? null;
+      }
+    });
+  }
+
+  /* ── Rendu table ── */
+  const headersBrisage = `
+    <th>#</th><th>Item</th><th class="tc">Niv.</th>
+    <th class="tr" title="Coefficient de brisage">Coeff.</th>
+    <th class="tr" title="Runes Ba estimées à coeff. serveur 100%">Runes Ba est.</th>
+    <th class="tr">Coût craft</th>
+    <th class="tr">${runePrice > 0 ? 'Valeur brisage' : '—'}</th>
+    <th class="tr">Marge</th>
+    <th class="tr">ROI</th>
+    <th class="tc">Détail</th>`;
+
+  const headersCv = `
+    <th>#</th><th>Item</th><th class="tc">Niv.</th>
+    <th class="tr" title="Coefficient de brisage">Coeff.</th>
+    <th class="tr">Coût craft</th>
+    <th class="tr">Prix HDV ×1</th>
+    <th class="tr">Marge nette</th>
+    <th class="tr">ROI</th>
+    <th class="tc">Détail</th>`;
+
+  const rowHtml = top.map((r, idx) => {
+    const badge = r.type ? `<span class="badge" style="margin-left:.3rem;font-size:.68rem;vertical-align:middle">${r.type}</span>` : '';
+    const roiColor = r.roi != null ? (r.roi >= 0.1 ? 'var(--green)' : r.roi >= 0 ? 'var(--orange)' : 'var(--red)') : 'var(--text-500)';
+    const roiTxt   = r.roi != null ? `${r.roi >= 0 ? '+' : ''}${Math.round(r.roi * 100)}%` : '—';
+
+    if (mode === 'brisage') {
+      const valCell = runePrice > 0 && r.brisageValue != null ? fmtKa(r.brisageValue) : '—';
+      const netCell = r.net != null
+        ? `<span class="profit-badge ${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : ''}${fmtKa(r.net)}</span>`
+        : '<span style="color:var(--text-500)">—</span>';
+      return `<tr>
+        <td style="color:var(--text-500);font-size:.78rem">${idx + 1}</td>
+        <td><strong>${r.name}</strong>${badge}</td>
+        <td class="tc" style="color:var(--text-500);font-size:.82rem;font-weight:600">${r.level ?? '—'}</td>
+        <td class="tr" style="color:var(--text-300);font-size:.82rem">${r.brisagePA ?? '—'}</td>
+        <td class="tr" style="font-weight:600">${r.runesEst}</td>
+        <td class="tr">${fmtKa(r.craftCost)}</td>
+        <td class="tr">${valCell}</td>
+        <td class="tr">${netCell}</td>
+        <td class="tr"><span style="color:${roiColor};font-weight:700">${roiTxt}</span></td>
+        <td class="tc"><button class="btn-sm" onclick="${detailFn}(${r.id})">🔎 Voir</button></td>
+      </tr>`;
+    } else {
+      return `<tr>
+        <td style="color:var(--text-500);font-size:.78rem">${idx + 1}</td>
+        <td><strong>${r.name}</strong>${badge}</td>
+        <td class="tc" style="color:var(--text-500);font-size:.82rem;font-weight:600">${r.level ?? '—'}</td>
+        <td class="tr" style="color:var(--text-300);font-size:.82rem">${r.brisagePA ?? '—'}</td>
+        <td class="tr">${fmtKa(r.craftCost)}</td>
+        <td class="tr">${fmtKa(r.hdvPrice)}</td>
+        <td class="tr"><span class="profit-badge ${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : ''}${fmtKa(r.net)}</span></td>
+        <td class="tr"><span style="color:${roiColor};font-weight:700">${roiTxt}</span></td>
+        <td class="tc"><button class="btn-sm" onclick="${detailFn}(${r.id})">🔎 Voir</button></td>
+      </tr>`;
     }
-  });
+  }).join('');
 
   wrap.innerHTML = `
     <div class="overflow-x" style="margin-top:.75rem">
       <table class="tbl">
-        <thead><tr>
-          <th>#</th>
-          <th>Item</th>
-          <th class="tc">Niv.</th>
-          <th class="tr" title="Coefficient de brisage : somme des poids de rune de toutes les stats">Coeff.</th>
-          <th class="tr">Coût craft</th>
-          <th class="tr">Prix HDV ×1</th>
-          <th class="tr">Marge nette</th>
-          <th class="tr">ROI</th>
-          <th class="tc">Détail</th>
-        </tr></thead>
-        <tbody>
-          ${top.map((r, idx) => `
-            <tr>
-              <td style="color:var(--text-500);font-size:.78rem">${idx + 1}</td>
-              <td>
-                <strong>${r.name}</strong>
-                ${r.type ? `<span class="badge" style="margin-left:.3rem;font-size:.68rem;vertical-align:middle">${r.type}</span>` : ''}
-              </td>
-              <td class="tc" style="color:var(--text-500);font-size:.82rem;font-weight:600">${r.level != null ? r.level : '—'}</td>
-              <td class="tr" style="color:var(--text-300);font-size:.82rem">${r.brisagePA != null ? r.brisagePA : '—'}</td>
-              <td class="tr">${fmtKa(r.craftCost)}</td>
-              <td class="tr">${fmtKa(r.hdvPrice)}</td>
-              <td class="tr">
-                <span class="profit-badge ${r.net >= 0 ? 'pos' : 'neg'}">
-                  ${r.net >= 0 ? '+' : ''}${fmtKa(r.net)}
-                </span>
-              </td>
-              <td class="tr">
-                <span style="color:${r.roi >= 0.1 ? 'var(--green)' : r.roi >= 0 ? 'var(--orange)' : 'var(--red)'};font-weight:700">
-                  ${r.roi >= 0 ? '+' : ''}${Math.round(r.roi * 100)}%
-                </span>
-              </td>
-              <td class="tc">
-                <button class="btn-sm" onclick="${detailFn}(${r.id})">🔎 Voir</button>
-              </td>
-            </tr>`).join('')}
-        </tbody>
+        <thead><tr>${mode === 'brisage' ? headersBrisage : headersCv}</tr></thead>
+        <tbody>${rowHtml}</tbody>
       </table>
     </div>
     <div style="padding:.5rem;font-size:.72rem;color:var(--text-500);text-align:center">
       ${rows.length} items analysés · top ${top.length} affiché${top.length > 1 ? 's' : ''}
       · budget ${budget === Infinity ? 'illimité' : fmtKa(budget)}
+      ${mode === 'brisage' && runePrice === 0 ? ' · <em>Entrez un prix de Rune Ba pour voir la marge et le ROI</em>' : ''}
     </div>
   `;
 
@@ -2020,6 +2068,8 @@ async function briRankItems() {
     budgetId: 'bri-budget', sortId: 'bri-sort',
     typeFilterId: 'bri-type-filter',
     detailFn: 'briLoadItemById',
+    mode: 'brisage',
+    runePriceId: 'bri-rune-price',
   });
 }
 
