@@ -332,7 +332,7 @@ const BRISAGE_SCRIPT = `(async function dofusBrisage() {
         if (!r.ok) { skipped++; break; }
         const item = await r.json();
         const pa = calcPA(item.effects);
-        if (pa != null) { coeffs[craft.itemID] = pa; done++; }
+        if (pa != null) { coeffs[craft.itemID] = { pa, type: item.type?.name || null, level: item.level || null }; done++; }
         else skipped++;
         break;
       } catch { skipped++; break; }

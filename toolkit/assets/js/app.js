@@ -162,14 +162,34 @@ function getCraftData() {
 }
 
 /**
- * Retourne les coefficients de brisage pré-calculés (depuis export DofusDude).
- * Format : { [itemId]: paValue }  — vide si pas encore exportés.
+ * Retourne les données brutes de brisage (gère les deux formats).
+ * Nouveau format : { [itemId]: { pa, type, level } }
+ * Ancien format  : { [itemId]: paValue }
  */
-function getBrisageCoeffs() {
+function getBrisageData() {
   try {
     const raw = localStorage.getItem(BRISAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const data = JSON.parse(raw);
+    const result = {};
+    for (const [id, val] of Object.entries(data)) {
+      result[id] = typeof val === 'object' && val !== null
+        ? val
+        : { pa: val, type: null, level: null };
+    }
+    return result;
   } catch { return {}; }
+}
+
+/**
+ * Retourne uniquement les coefficients PA { [itemId]: paValue }.
+ * Compatible avec les deux formats de fichier (ancien et nouveau).
+ */
+function getBrisageCoeffs() {
+  const data = getBrisageData();
+  const result = {};
+  for (const [id, val] of Object.entries(data)) result[id] = val.pa;
+  return result;
 }
 
 /**

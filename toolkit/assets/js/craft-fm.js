@@ -1862,10 +1862,20 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Calcul…'; }
 
-  /* Heuristique de filtre par type (basée sur le nom) */
+  /* Types DofusDude non-arme (pour le filtre "Arme") */
+  const NON_WEAPON_TYPES = new Set([
+    'Anneau', 'Amulette', 'Ceinture', 'Bottes', 'Cape', 'Manteau',
+    'Chapeau', 'Casque', 'Coiffe', 'Couronne', 'Bouclier',
+    'Trophée', 'Dofus', 'Familier', 'Monture', 'Costume',
+    'Objet de quête', 'Objet de mutation', 'Équipement de compagnon',
+  ]);
+
+  /* Données brisage pré-calculées (type + PA) */
+  const brisageData = getBrisageData();
+
+  /* Heuristique nom — fallback si pas de données brisage */
   const TYPE_KW = {
-    Amulette: ['amulette'],
-    Anneau:   ['anneau', 'bague'],
+    Bijou:    ['amulette', 'anneau', 'bague'],
     Ceinture: ['ceinture'],
     Bottes:   ['bottes', 'sandales', 'souliers'],
     Cape:     ['cape', 'manteau'],
@@ -1880,14 +1890,27 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
     const itemP  = dump.prices[itemId];
     if (!itemP) continue;
 
-    /* Filtre par type via nom */
+    /* Filtre par type — données DofusDude en priorité, heuristique en fallback */
     if (typeFilter !== 'all') {
-      const nameLc = (craft.Name || '').toLowerCase();
-      if (typeFilter === 'Arme') {
-        if (ALL_NON_WEAPON_KW.some(kw => nameLc.includes(kw))) continue;
+      const storedType = brisageData[itemId]?.type || null;
+      if (storedType) {
+        /* Données réelles disponibles */
+        if (typeFilter === 'Arme') {
+          if (NON_WEAPON_TYPES.has(storedType)) continue;
+        } else if (typeFilter === 'Bijou') {
+          if (storedType !== 'Anneau' && storedType !== 'Amulette') continue;
+        } else {
+          if (storedType !== typeFilter) continue;
+        }
       } else {
-        const kws = TYPE_KW[typeFilter] || [];
-        if (!kws.some(kw => nameLc.includes(kw))) continue;
+        /* Fallback heuristique (nom) */
+        const nameLc = (craft.Name || '').toLowerCase();
+        if (typeFilter === 'Arme') {
+          if (ALL_NON_WEAPON_KW.some(kw => nameLc.includes(kw))) continue;
+        } else {
+          const kws = TYPE_KW[typeFilter] || [];
+          if (!kws.some(kw => nameLc.includes(kw))) continue;
+        }
       }
     }
 
