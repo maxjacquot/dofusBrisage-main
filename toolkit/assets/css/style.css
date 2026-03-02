@@ -1150,6 +1150,54 @@ body {
   font-size: .76rem; color: var(--text-300); line-height: 1.6;
 }
 
+/* ── Brisage individuel — résumé top ── */
+.bri-top-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.bri-top-field { flex: 1; min-width: 140px; }
+.bri-top-label { font-size: .72rem; color: var(--text-500); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .25rem; }
+.bri-top-val { font-size: 1.05rem; font-weight: 700; color: var(--text-300); }
+.bri-seuil { font-size: .74rem; color: var(--text-500); margin-top: .2rem; }
+.bri-dump-badge { display:inline-block; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; background:rgba(200,168,75,.15); color:var(--gold-muted); border:1px solid rgba(200,168,75,.3); border-radius:3px; padding:.05rem .3rem; margin-left:.35rem; vertical-align:middle; }
+.bri-coef-inp {
+  width: 80px; background: var(--bg-elevated);
+  border: 1px solid var(--border); border-radius: var(--r);
+  padding: .3rem .5rem; font-size: .88rem; color: var(--text-300); font-family: inherit;
+}
+.bri-coef-inp:focus { outline: none; border-color: var(--gold-muted); }
+
+/* ── Brisage individuel — tableau des stats ── */
+.bri-stats-tbl { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 1rem; }
+.bri-stats-head,
+.bri-stats-row,
+.bri-stats-footer {
+  display: grid;
+  grid-template-columns: 1.8fr 1.3fr 1.2fr 1fr 1fr;
+  gap: .3rem; padding: .42rem .7rem; align-items: center; font-size: .82rem;
+}
+.bri-stats-head {
+  background: var(--bg-elevated); color: var(--text-500);
+  font-size: .71rem; text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 1px solid var(--border);
+}
+.bri-stats-row { border-bottom: 1px solid rgba(255,255,255,.04); }
+.bri-stats-row:last-child { border-bottom: none; }
+.bri-stats-row--best { background: rgba(200,168,75,.07); border-left: 2px solid var(--gold-main); }
+.bri-stats-footer { background: var(--bg-elevated); border-top: 1px solid var(--border); font-weight: 600; }
+.bri-stat-name { color: var(--text-300); }
+.bri-stat-val  { color: var(--text-200); }
+.bri-stat-avg  { color: var(--text-500); }
+.bri-stat-rune { color: var(--text-500); font-size: .76rem; }
+.bri-rune-inp {
+  width: 100%; min-width: 0;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: .22rem .4rem;
+  font-size: .8rem; color: var(--text-300); font-family: inherit;
+}
+.bri-rune-inp:focus { outline: none; border-color: var(--gold-muted); }
+.bri-rune-inp--override { border-color: var(--gold-muted); color: var(--gold-muted); }
+.bri-focus-val { text-align: right; font-weight: 600; color: var(--text-500); }
+.bri-focus-val--best { color: var(--gold-main); font-size: 1rem; }
+.bri-hint { color: var(--text-500); font-size: .74rem; font-style: italic; }
+
 /* ============================================================
    IMAGIRO — Dump progress (dans la modale)
 ============================================================ */

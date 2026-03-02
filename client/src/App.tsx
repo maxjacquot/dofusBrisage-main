@@ -2,14 +2,16 @@ import { useState } from 'react'
 import './App.css'
 import { METIERS, LS_PRICES_KEY, LS_PRESETS_KEY, LS_INPROGRESS_KEY, LS_FARMER_KEY } from './constants'
 import { ls, lsSet, loadBrisageCoef, saveBrisageCoef } from './storage'
-import type { EquipmentItem, ResourceInfo, PricesStore, SearchPreset, Tab, FarmerItem } from './types'
+import type { EquipmentItem, ResourceInfo, PricesStore, SearchPreset, Tab, FarmerItem, MainTab } from './types'
 import { BrisageModal } from './components/BrisageModal'
 import { CraftTab } from './components/CraftTab'
 import { BrisageEnCoursTab } from './components/BrisageEnCoursTab'
 import { ResourcesTab } from './components/ResourcesTab'
 import { FarmerTab } from './components/FarmerTab'
+import { DumpsTab } from './components/DumpsTab'
 
 function App() {
+  const [mainTab, setMainTab] = useState<MainTab>('routes')
   const [tab, setTab] = useState<Tab>('craft')
 
   const [lvlmin, setLvlmin] = useState(1)
@@ -230,6 +232,26 @@ function App() {
       <h1 className="title">Dofus Brisage</h1>
       <p className="subtitle">Calculateur de prix de craft</p>
 
+      {/* Onglets principaux */}
+      <div className="tabs" style={{ marginBottom: '1.25rem' }}>
+        <button
+          className={`tab${mainTab === 'routes' ? ' tab--active' : ''}`}
+          onClick={() => setMainTab('routes')}
+        >
+          Depuis les routes
+        </button>
+        <button
+          className={`tab${mainTab === 'dumps' ? ' tab--active' : ''}`}
+          onClick={() => setMainTab('dumps')}
+        >
+          Depuis les dumps
+        </button>
+      </div>
+
+      {mainTab === 'dumps' && <DumpsTab />}
+
+      {mainTab === 'routes' && <>
+
       {/* Favoris */}
       {presets.length > 0 && (
         <div className="presets-row">
@@ -407,6 +429,7 @@ function App() {
           onToggleFarmerResource={toggleFarmerItem}
         />
       )}
+      </>}
     </div>
   )
 }

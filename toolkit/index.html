@@ -693,12 +693,16 @@
         <button class="btn imagiro-btn" id="icfg-dump-btn" onclick="imagiroDumpPrices()" style="font-size:.8rem">
           📥 Via proxy (localhost)
         </button>
-        <label class="btn imagiro-btn" style="font-size:.8rem;cursor:pointer" title="Importer un fichier exporté depuis imagiro.laboubourse.com">
-          📂 Importer un fichier JSON
-          <input type="file" id="icfg-import-file" accept=".json" style="display:none">
-        </label>
         <button class="btn-sm" onclick="imagiroClearDump()" style="font-size:.72rem">🗑 Effacer</button>
       </div>
+      <label class="file-drop" id="icfg-import-zone" for="icfg-import-file"
+             style="margin-top:.65rem;padding:.85rem 1.5rem;text-align:center"
+             title="Déposer un ou plusieurs fichiers JSON, ou cliquer pour sélectionner">
+        <div class="file-drop-icon" style="font-size:1.4rem">📂</div>
+        <div class="file-drop-text" style="font-size:.82rem">Déposer un ou plusieurs fichiers JSON</div>
+        <div class="file-drop-hint">prix HDV · craft-data · coefficients brisage</div>
+        <input type="file" id="icfg-import-file" accept=".json" multiple style="display:none">
+      </label>
       <div style="margin-top:.55rem;font-size:.74rem;color:var(--text-500)">
         💡 Si le proxy est bloqué par Cloudflare →
         <a href="export.html" target="_blank" style="color:var(--gold-muted);text-decoration:underline">ouvrir la page d'export</a>

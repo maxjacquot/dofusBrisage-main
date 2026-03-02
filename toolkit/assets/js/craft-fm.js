@@ -1578,6 +1578,7 @@ function imagiroClearDump() {
   localStorage.removeItem(DUMP_KEY);
   localStorage.removeItem(CRAFT_DATA_KEY);
   localStorage.removeItem(BRISAGE_KEY);
+  localStorage.removeItem(IMAGIRO_COEFFS_KEY);
   _priceDump = null;
   imagiroUpdateDumpStatus();
 }
@@ -1620,6 +1621,140 @@ function briError(msg) {
     `<div class="placeholder"><div class="placeholder-icon">⚠️</div><h3>Erreur</h3><p>${msg}</p></div>`;
 }
 
+/* ================================================================
+   BRISAGE — Constantes + formule officielle (calculateur item individuel)
+   Formule : Pdb = 3 × jet × poids_brisage × niveau / 200 + 1
+     Sans focus  → runes Ba = Pdb × taux / poids_rune
+     Avec focus  → Pdb_focus = Pdb_k + (PdbTotal − Pdb_k) / 2
+                 → runes Ba  = Pdb_focus × taux / poids_rune_k
+================================================================ */
+
+const BRISAGE_POIDS = {
+  'Force': 1, 'Intelligence': 1, 'Chance': 1, 'Agilité': 1,
+  'Vitalité': 0.2, 'Sagesse': 3, 'Prospection': 3, 'Puissance': 2,
+  'PA': 100, 'PM': 90, 'Portée': 51, 'Initiative': 0.1, 'Pod': 0.25, 'Invocation': 30,
+  'Tacle': 4, 'Fuite': 4, 'Esquive PA': 7, 'Esquive PM': 7, 'Retrait PA': 7, 'Retrait PM': 7,
+  'Dommage': 20, 'Soin': 10, '% Critique': 10, 'Dommages Renvoyés': 10,
+  'Dommage Critiques': 5, 'Dommage Poussée': 5,
+  'Dommage Feu': 5, 'Dommage Eau': 5, 'Dommage Terre': 5, 'Dommage Air': 5, 'Dommage Neutre': 5,
+  'dommages Feu': 5, 'dommages Eau': 5, 'dommages Terre': 5, 'dommages Air': 5, 'dommages Neutre': 5,
+  'dommages du meilleur élément': 5,
+  'vol Feu': 5, 'vol Eau': 5, 'vol Terre': 5, 'vol Air': 5, 'vol Neutre': 5,
+  'vol du meilleur élément': 5, 'Vole PM': 7, 'soins Feu': 10,
+  'Dommage Pièges': 5, 'Puissance Pièges': 2,
+  'Résistance Neutre': 2, 'Résistance Feu': 2, 'Résistance Eau': 2,
+  'Résistance Terre': 2, 'Résistance Air': 2, 'Résistance Critiques': 2, 'Résistance Poussée': 2,
+  '% Résistance Neutre': 6, '% Résistance Feu': 6, '% Résistance Eau': 6,
+  '% Résistance Terre': 6, '% Résistance Air': 6,
+  '% Résistance distance': 15, '% Résistance mêlée': 15,
+  '% Dommages aux sorts': 15, "% Dommages d'armes": 15,
+  '% Dommages distance': 15, '% Dommages mêlée': 15,
+  'Arme de chasse': 5, 'Attire de case': 4, 'Repousse de case': 4, 'Avance de case': 4,
+};
+
+/* Poids de la rune Ba — seulement si différent du poids_brisage */
+const RUNE_POIDS_OVERRIDE = {
+  'Vitalité': 1,    // Ba Vita = 5 vita  → poids_rune 1 (poids_brisage 0.2)
+  'Initiative': 1,  // Ba Init = 10 init → poids_rune 1 (poids_brisage 0.1)
+  'Pod': 2.5,       // Ba Pod  = 4 pods  → poids_rune 2.5 (poids_brisage 0.25)
+};
+
+const STAT_TO_RUNE_BA = {
+  'Force': 'Rune Fo', 'Intelligence': 'Rune Ine', 'Chance': 'Rune Cha', 'Agilité': 'Rune Age',
+  'Vitalité': 'Rune Vi', 'Sagesse': 'Rune Sa', 'Prospection': 'Rune Prospe', 'Puissance': 'Rune Pui',
+  'PA': 'Rune Ga Pa', 'PM': 'Rune Ga Pme', 'Portée': 'Rune Po', 'Initiative': 'Rune Ini',
+  'Pod': 'Rune Pod', 'Invocation': 'Rune Invo',
+  'Tacle': 'Rune Tac', 'Fuite': 'Rune Fui',
+  'Esquive PA': 'Rune Ré Pa', 'Esquive PM': 'Rune Ré Pme',
+  'Retrait PA': 'Rune Ret Pa', 'Retrait PM': 'Rune Ret Pme',
+  'Dommage': 'Rune Do', 'Soin': 'Rune So', '% Critique': 'Rune Cri',
+  'Dommages Renvoyés': 'Rune Do Ren', 'Dommage Critiques': 'Rune Do Cri', 'Dommage Poussée': 'Rune Do Pou',
+  'Dommage Feu': 'Rune Do Feu', 'Dommage Eau': 'Rune Do Eau',
+  'Dommage Terre': 'Rune Do Terre', 'Dommage Air': 'Rune Do Air', 'Dommage Neutre': 'Rune Do Neutre',
+  'dommages Feu': 'Rune Do Feu', 'dommages Eau': 'Rune Do Eau',
+  'dommages Terre': 'Rune Do Terre', 'dommages Air': 'Rune Do Air', 'dommages Neutre': 'Rune Do Neutre',
+  'Dommage Pièges': 'Rune Do Pi', 'Puissance Pièges': 'Rune Per Pi',
+  'Résistance Neutre': 'Rune Ré Neutre', 'Résistance Feu': 'Rune Ré Feu',
+  'Résistance Eau': 'Rune Ré Eau', 'Résistance Terre': 'Rune Ré Terre', 'Résistance Air': 'Rune Ré Air',
+  'Résistance Critiques': 'Rune Ré Cri', 'Résistance Poussée': 'Rune Ré Pou',
+  '% Résistance Neutre': 'Rune Ré Per Neutre', '% Résistance Feu': 'Rune Ré Per Feu',
+  '% Résistance Eau': 'Rune Ré Per Eau', '% Résistance Terre': 'Rune Ré Per Terre',
+  '% Résistance Air': 'Rune Ré Per Air',
+  '% Résistance distance': 'Rune Ré Per Di', '% Résistance mêlée': 'Rune Ré Per Mé',
+  '% Dommages aux sorts': 'Rune Do Per So', "% Dommages d'armes": 'Rune Do Per Ar',
+  '% Dommages distance': 'Rune Do Per Di', '% Dommages mêlée': 'Rune Do Per Mé',
+  'Arme de chasse': 'Rune de chasse',
+};
+
+const BRI_RUNE_PRICES_KEY = 'bri_rune_prices';
+const BRI_SERVER_COEF_KEY  = 'bri_server_coef';
+
+function getBriRunePrices() {
+  try { return JSON.parse(localStorage.getItem(BRI_RUNE_PRICES_KEY) || '{}'); } catch { return {}; }
+}
+function saveBriRunePrice(statName, price) {
+  const all = getBriRunePrices(); all[statName] = price;
+  localStorage.setItem(BRI_RUNE_PRICES_KEY, JSON.stringify(all));
+}
+function getBriServerCoef() {
+  return parseFloat(localStorage.getItem(BRI_SERVER_COEF_KEY) || '100') || 100;
+}
+
+/**
+ * Index nom_de_rune → prix_unitaire construit depuis le dump HDV.
+ * Invalidé automatiquement si le dump change (comparaison de référence).
+ */
+let _runeNameIndex     = null;
+let _runeNameIndexDump = null;
+
+function getRuneNameIndex() {
+  const dump = getPriceDump();
+  if (!dump) { _runeNameIndex = null; _runeNameIndexDump = null; return {}; }
+  if (_runeNameIndex && _runeNameIndexDump === dump) return _runeNameIndex;
+  _runeNameIndex     = {};
+  _runeNameIndexDump = dump;
+  for (const entry of Object.values(dump.prices)) {
+    if (entry.name) {
+      _runeNameIndex[entry.name] = entry.p100 > 0 ? entry.p100 / 100
+                                 : entry.p10  > 0 ? entry.p10  / 10
+                                 : entry.p1   || 0;
+    }
+  }
+  return _runeNameIndex;
+}
+
+/**
+ * Calcule les runes estimées pour chaque stat (formule officielle Dofus 3).
+ * @param {object} item — item DofusDude avec .level et .effects
+ * @param {number} coef — coefficient serveur en % (ex. 100)
+ */
+function computeStatBrisage(item, coef) {
+  const niveau = item.level;
+  const taux   = coef / 100;
+  const effects = (item.effects ?? [])
+    .filter(e => !e.type?.is_meta && (e.int_minimum + e.int_maximum) / 2 > 0);
+
+  const rows = effects.map(eff => {
+    const min       = Math.min(eff.int_minimum, eff.int_maximum);
+    const max       = Math.max(eff.int_minimum, eff.int_maximum);
+    const avgVal    = (min + max) / 2;
+    const bp        = BRISAGE_POIDS[eff.type.name];
+    const hasWeight = bp !== undefined;
+    const runePoids = RUNE_POIDS_OVERRIDE[eff.type.name] ?? bp ?? 1;
+    const pdb       = hasWeight ? 3 * avgVal * bp * niveau / 200 + 1 : 0;
+    return { name: eff.type.name, min, max, avgVal, hasWeight, pdb, runePoids };
+  });
+
+  const pdbTotal = rows.reduce((s, r) => s + r.pdb, 0);
+  return rows.map(r => {
+    const runesNoFocus = r.hasWeight ? r.pdb * taux / r.runePoids : 0;
+    const pdbFocus     = r.pdb + (pdbTotal - r.pdb) / 2;
+    const runesFocus   = r.hasWeight ? pdbFocus * taux / r.runePoids : 0;
+    return { name: r.name, min: r.min, max: r.max, avgVal: r.avgVal,
+             hasWeight: r.hasWeight, runesNoFocus, runesFocus };
+  });
+}
+
 async function buildBrisage(item) {
   const recipe = item.recipe;
   if (!recipe?.length) {
@@ -1627,7 +1762,6 @@ async function buildBrisage(item) {
     return;
   }
 
-  /* Charge les ingrédients */
   const ingredients = await Promise.all(recipe.map(async r => {
     const rid = r.item_ankama_id ?? r.ankama_id;
     let name = r.name || `#${rid}`, img = r.image_urls?.icon || '';
@@ -1635,34 +1769,102 @@ async function buildBrisage(item) {
       const d = await getAnyItem(rid, r.item_subtype ?? '');
       if (d) { name = d.name || name; img = d.image_urls?.icon || img; }
     }
-    /* Récupère le prix depuis le cache */
     const cached = getPriceCached(rid);
-    return { id: rid, name, qty: r.quantity || 1, img,
-             p1: cached?.p1 || 0, p10: cached?.p10 || 0 };
+    /* Prix unitaire : lot ×100 ÷ 100, fallback ×10 ÷ 10, puis ×1 */
+    const unitPrice = cached?.p100 > 0 ? cached.p100 / 100
+                    : cached?.p10  > 0 ? cached.p10  / 10
+                    : cached?.p1   || 0;
+    return { id: rid, name, qty: r.quantity || 1, img, unitPrice };
   }));
 
-  /* Prix HDV de l'item crafté */
-  const itemCached = getPriceCached(item.ankama_id);
+  /* Coefficient serveur : dump imagiro per-item > valeur globale sauvegardée */
+  const _dumpCoeffs = getBrisageCoeffs();
+  const _dumpCoef   = _dumpCoeffs[item.ankama_id] != null ? Number(_dumpCoeffs[item.ankama_id]) : null;
+  const _serverCoef = _dumpCoef !== null ? _dumpCoef : getBriServerCoef();
 
-  renderBrisage(item, ingredients, itemCached);
+  renderBrisage(item, ingredients, _serverCoef, getBriRunePrices(), _dumpCoef);
 }
 
-function renderBrisage(item, ingredients, itemCached) {
+function renderBrisage(item, ingredients, serverCoef, runePrices, dumpCoef = null) {
   const wrap = document.getElementById('bri-content');
   const ico  = item.image_urls?.icon || '';
 
-  const missingPrices = ingredients.filter(r => !r.p1);
-  const craftCost = ingredients.reduce((s, r) => s + r.p1 * r.qty, 0);
-  const craftCostComplete = missingPrices.length === 0;
-  const hdvPrice  = itemCached?.p1 || 0;
-  const margin    = hdvPrice > 0 && craftCostComplete ? hdvPrice * (1 - TAX) - craftCost : null;
-  const roi       = craftCost > 0 && margin !== null ? margin / craftCost : null;
+  const missingPrices = ingredients.filter(r => !r.unitPrice);
+  const craftCost     = ingredients.reduce((s, r) => s + r.unitPrice * r.qty, 0);
+  const hasDump       = !!getPriceDump();
 
-  /* Coefficient de brisage : pré-calculé > calculé depuis effects > null */
-  const preCoeffs = getBrisageCoeffs();
-  const brisagePA = preCoeffs[item.ankama_id] ?? calcBrisagePA(item.effects);
+  /* ── Calcul brisage ── */
+  const stats     = computeStatBrisage(item, serverCoef);
+  const runeIdx   = getRuneNameIndex();
 
-  const hasDump   = !!getPriceDump();
+  /* Résout le prix effectif pour une stat :
+     1. Override manuel (localStorage)  2. Prix du dump HDV (via nom de rune)  3. 0 */
+  function effectiveRunePrice(statName) {
+    const override  = runePrices[statName] ?? 0;
+    const runeName  = STAT_TO_RUNE_BA[statName] || '';
+    const dumpPrice = runeName ? (runeIdx[runeName] ?? 0) : 0;
+    return override > 0 ? override : dumpPrice;
+  }
+
+  const totalNoFocus = stats.reduce((s, d) => s + d.runesNoFocus * effectiveRunePrice(d.name), 0);
+
+  const allOptions = [
+    { label: 'Sans focus', key: '__no_focus', value: totalNoFocus },
+    ...stats.filter(d => d.hasWeight).map(d => ({
+      label: d.name, key: d.name,
+      value: d.runesFocus * effectiveRunePrice(d.name),
+    })),
+  ].filter(o => o.value > 0);
+
+  const bestOption = allOptions.length > 0
+    ? allOptions.reduce((best, curr) => curr.value > best.value ? curr : best)
+    : null;
+
+  const diff    = bestOption !== null ? bestOption.value - craftCost : null;
+  const SEUIL_K = 1000;
+  let coefSeuil = null;
+  if (bestOption !== null && bestOption.value > 0 && serverCoef > 0) {
+    coefSeuil = craftCost > 0 ? Math.ceil(craftCost * serverCoef / bestOption.value) : 0;
+  }
+
+  /* ── Pré-calcul HTML des lignes stats ── */
+  const rowsHtml = stats.map(d => {
+    const isBest    = bestOption?.key === d.name;
+    const runeName  = STAT_TO_RUNE_BA[d.name] || '';
+    const dumpPrice = runeName ? (runeIdx[runeName] ?? 0) : 0;
+    const override  = runePrices[d.name] ?? 0;
+    const price     = override > 0 ? override : dumpPrice;
+    const valFocus = d.hasWeight && d.runesFocus > 0 ? d.runesFocus * price : 0;
+    const valHtml  = price > 0
+      ? fmtKa(valFocus)
+      : '<span class="bri-hint">saisir prix</span>';
+    const valStr   = d.min === d.max
+      ? `+${d.min}`
+      : `+${d.min}–${d.max} <small class="bri-stat-avg">(moy. ${Number.isInteger(d.avgVal) ? d.avgVal : d.avgVal.toFixed(1)})</small>`;
+    return `
+      <div class="bri-stats-row${isBest ? ' bri-stats-row--best' : ''}">
+        <span class="bri-stat-name" title="${runeName ? `Rune Ba : ${runeName}` : ''}">${d.name}</span>
+        <span class="bri-stat-val">${valStr}</span>
+        <span class="bri-stat-rune">${runeName || '—'}</span>
+        <input class="bri-rune-inp${override > 0 ? ' bri-rune-inp--override' : ''}" type="number" min="0"
+               data-stat="${d.name}" data-dump-price="${dumpPrice}"
+               value="${price || ''}"
+               placeholder="${dumpPrice > 0 ? Math.round(dumpPrice) : 'Prix rune'}"
+               title="${dumpPrice > 0 ? `Prix dump : ${fmtKa(dumpPrice)}${override > 0 ? ` · Override : ${fmtKa(override)}` : ''}` : 'Prix non trouvé dans le dump'}">
+        <span class="bri-focus-val${isBest ? ' bri-focus-val--best' : (valFocus > 0 ? ' gold' : '')}">
+          ${d.hasWeight && d.runesFocus > 0 ? valHtml : '—'}
+        </span>
+      </div>`;
+  }).join('');
+
+  const verdictHtml = diff !== null ? `
+    <div class="bri-verdict ${diff >= SEUIL_K ? 'bri-ok' : diff > 0 ? 'bri-meh' : 'bri-bad'}">
+      ${diff >= SEUIL_K
+        ? `🟢 Rentable en <strong>${bestOption.label}</strong> — profit estimé : +${fmtKa(diff)}`
+        : diff > 0
+          ? `🟡 Légèrement rentable en <strong>${bestOption.label}</strong> — profit : +${fmtKa(diff)}`
+          : `🔴 Non rentable — coût craft supérieur au rendement brisage (${fmtKa(diff)})`}
+    </div>` : '';
 
   wrap.innerHTML = `
     <div class="item-head">
@@ -1673,16 +1875,17 @@ function renderBrisage(item, ingredients, itemCached) {
       </div>
     </div>
 
-    ${!hasDump ? `<div class="notice"><span>💾</span><div>Importez le cache des prix (⚙️ → "📂 Importer un fichier JSON") pour auto-remplir les prix.</div></div>` : ''}
-    ${hasDump && missingPrices.length > 0 ? `<div class="notice" style="margin-bottom:.875rem"><span>⚠️</span><div><strong>${missingPrices.length} ingrédient(s) sans prix</strong> dans le cache : ${missingPrices.map(r=>`<em>${r.name}</em>`).join(', ')}. Coût de craft incomplet.</div></div>` : ''}
+    ${!hasDump ? '<div class="notice"><span>💾</span><div>Importez le cache des prix (⚙️ → zone de dépôt) pour auto-remplir les prix.</div></div>' : ''}
+    ${hasDump && missingPrices.length > 0 ? `<div class="notice"><span>⚠️</span><div><strong>${missingPrices.length} ingrédient(s) sans prix :</strong> ${missingPrices.map(r => `<em>${r.name}</em>`).join(', ')}.</div></div>` : ''}
 
     <div class="card">
-      <div class="card-head"><span class="card-title">🧪 Coût de craft</span></div>
+      <div class="card-head"><span class="card-title">🧪 Ressources du craft</span></div>
       <div class="overflow-x">
         <table class="tbl">
           <thead><tr>
             <th>Ingrédient</th><th class="tc">Qté</th>
-            <th class="tr">Prix ×1</th><th class="tr">Prix ×10</th><th class="tr">Sous-total</th>
+            <th class="tr" title="Prix unitaire calculé depuis le lot ×100 (fallback ×10 ou ×1)">Prix unit. (×100)</th>
+            <th class="tr">Sous-total</th>
           </tr></thead>
           <tbody>
             ${ingredients.map(r => `
@@ -1692,13 +1895,12 @@ function renderBrisage(item, ingredients, itemCached) {
                   <span>${r.name}</span>
                 </div></td>
                 <td class="tc"><span class="ing-qty">×${r.qty}</span></td>
-                <td class="tr">${r.p1 ? fmtKa(r.p1) : '<span style="color:var(--text-500)">—</span>'}</td>
-                <td class="tr">${r.p10 ? fmtKa(r.p10) : '<span style="color:var(--text-500)">—</span>'}</td>
-                <td class="tr">${r.p1 ? fmtKa(r.p1 * r.qty) : '—'}</td>
+                <td class="tr">${r.unitPrice ? fmtKa(r.unitPrice) : '<span style="color:var(--text-500)">—</span>'}</td>
+                <td class="tr">${r.unitPrice ? fmtKa(r.unitPrice * r.qty) : '—'}</td>
               </tr>`).join('')}
           </tbody>
           <tfoot><tr>
-            <td colspan="4" style="text-align:right;color:var(--text-300);font-size:.78rem;padding-right:.5rem">Coût total craft</td>
+            <td colspan="3" style="text-align:right;color:var(--text-300);font-size:.78rem;padding-right:.5rem">Prix de craft total</td>
             <td class="tr"><strong class="gold">${craftCost ? fmtKa(craftCost) : '—'}</strong></td>
           </tr></tfoot>
         </table>
@@ -1706,54 +1908,88 @@ function renderBrisage(item, ingredients, itemCached) {
     </div>
 
     <div class="card">
-      <div class="card-head"><span class="card-title">📊 Analyse Brisage / Vente</span></div>
+      <div class="card-head"><span class="card-title">💎 Analyse Brisage</span></div>
       <div class="card-body">
-        <div class="sum-grid">
-          <div class="sum-stat hl">
-            <div class="sum-label">Coût de craft</div>
-            <div class="sum-val gold">${craftCost ? fmtKa(craftCost) : '—'}</div>
+
+        <div class="bri-top-row">
+          <div class="bri-top-field">
+            <div class="bri-top-label">Prix de craft</div>
+            <div class="bri-top-val gold">${craftCost ? fmtKa(craftCost) : '—'}</div>
+            ${coefSeuil !== null ? `<div class="bri-seuil">Coef min rentable : <strong>${coefSeuil}%</strong></div>` : ''}
           </div>
-          <div class="sum-stat">
-            <div class="sum-label">Prix HDV (×1)</div>
-            <div class="sum-val">${hdvPrice ? fmtKa(hdvPrice) : '—'}</div>
-          </div>
-          <div class="sum-stat">
-            <div class="sum-label">Taxe HDV (2%)</div>
-            <div class="sum-val">${hdvPrice ? fmtKa(hdvPrice * TAX) : '—'}</div>
-          </div>
-          <div class="sum-stat ${margin !== null ? (margin >= 0 ? 'pos' : 'neg') : ''}">
-            <div class="sum-label">Marge nette vente</div>
-            <div class="sum-val ${margin !== null ? (margin >= 0 ? 'green' : 'red') : ''}">
-              ${margin !== null ? (margin >= 0 ? '+' : '') + fmtKa(margin) : '—'}
+          <div class="bri-top-field">
+            <div class="bri-top-label">Coefficient serveur (%)
+              ${dumpCoef !== null ? '<span class="bri-dump-badge">dump</span>' : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:.4rem">
+              <input id="bri-server-coef-inp" class="bri-coef-inp" type="number"
+                     min="0" max="4000" value="${serverCoef}" placeholder="100"
+                     data-dump-coef="${dumpCoef ?? ''}"
+                     title="${dumpCoef !== null ? `Coefficient imagiro pour cet item : ${dumpCoef}%` : 'Valeur manuelle — non trouvée dans le dump'}">
+              <span style="color:var(--text-500);font-size:.8rem">%</span>
             </div>
           </div>
-          <div class="sum-stat" title="Coefficient de brisage : somme des poids de rune de chaque stat. Multipliez par (niveau × 0,015) pour estimer les runes générées à coeff serveur 100%.">
-            <div class="sum-label">💎 Coefficient de brisage</div>
-            <div class="sum-val" style="font-size:1.1rem">${brisagePA != null ? brisagePA : '—'}</div>
-          </div>
-          ${brisagePA != null && item.level ? `
-          <div class="sum-stat" title="Runes générées estimées à coeff. serveur 100%. Formule : coefficient × niveau × 0,015">
-            <div class="sum-label">🎲 Runes générées (coeff 100%)</div>
-            <div class="sum-val" style="font-size:1rem">${Math.round(brisagePA * item.level * 0.0150)}</div>
+          ${diff !== null ? `
+          <div class="bri-top-field">
+            <div class="bri-top-label">Résultat (${bestOption.label})</div>
+            <div class="bri-top-val ${diff >= SEUIL_K ? 'green' : diff > 0 ? '' : 'red'}" style="font-weight:700">
+              ${diff >= 0 ? '+' : ''}${fmtKa(diff)}
+            </div>
           </div>` : ''}
         </div>
 
-        ${roi !== null ? `
-          <div class="bri-verdict ${roi >= 0.1 ? 'bri-ok' : roi >= 0 ? 'bri-meh' : 'bri-bad'}">
-            ${roi >= 0.3 ? '🟢 Très rentable à vendre (ROI +' + Math.round(roi*100) + '%)'
-            : roi >= 0.1 ? '🟡 Rentable à vendre (ROI +' + Math.round(roi*100) + '%)'
-            : roi >= 0   ? '🟠 Rentabilité faible — évaluer le brisage (ROI +' + Math.round(roi*100) + '%)'
-            : '🔴 Non rentable à vendre — brisage ou stockage conseillé (ROI ' + Math.round(roi*100) + '%)'}
-          </div>` : ''}
+        ${stats.length > 0 ? `
+        <div class="bri-stats-tbl">
+          <div class="bri-stats-head">
+            <span>Stat</span><span>Valeur</span><span>Rune Ba</span>
+            <span>Prix rune Ba</span><span class="tc">Valeur focus</span>
+          </div>
+          ${rowsHtml}
+          <div class="bri-stats-footer${bestOption?.key === '__no_focus' ? ' bri-stats-row--best' : ''}">
+            <span class="bri-stat-name">Sans focus (total)</span>
+            <span></span><span></span><span></span>
+            <span class="bri-focus-val${bestOption?.key === '__no_focus' ? ' bri-focus-val--best' : (totalNoFocus > 0 ? ' gold' : '')}">
+              ${totalNoFocus > 0 ? fmtKa(totalNoFocus) : '—'}
+            </span>
+          </div>
+        </div>` : '<div style="color:var(--text-500);font-size:.82rem;margin:.5rem 0">Aucun effet brisable trouvé.</div>'}
+
+        ${verdictHtml}
 
         <div class="bri-note">
-          ℹ️ <strong>Coefficient de brisage</strong> = somme des poids de rune de chaque stat (indépendant du niveau).
-          <strong>Runes générées</strong> = Coefficient × niveau × 0,015 à coeff. serveur 100% — le coefficient serveur réel varie de 1% à 4000% selon l'activité de brisage.
-          Multipliez les runes obtenues par leurs prix HDV pour connaître la valeur en kamas.
+          ℹ️ Formule : <strong>Pdb = 3 × jet × poids_brisage × niveau ÷ 200 + 1</strong>.
+          Sans focus → runes = Pdb × taux ÷ poids_rune. Avec focus sur stat k → Pdb_focus = Pdb_k + (Pdb_total − Pdb_k) ÷ 2.
+          Coefficient serveur : 1% à ~4000% selon l'activité. Prix ingrédients = lot ×100 ÷ 100.
+          Prix runes chargés automatiquement depuis le dump HDV — modifiables manuellement (override en <span style="color:var(--gold-muted)">doré</span>).
         </div>
       </div>
     </div>
   `;
+
+  /* ── Events ── */
+  document.getElementById('bri-server-coef-inp')?.addEventListener('change', e => {
+    const v  = parseFloat(e.target.value) || 0;
+    const dc = e.target.dataset.dumpCoef !== '' ? parseFloat(e.target.dataset.dumpCoef) : null;
+    localStorage.setItem(BRI_SERVER_COEF_KEY, String(v));
+    renderBrisage(item, ingredients, v, getBriRunePrices(), dc);
+  });
+  document.querySelectorAll('.bri-rune-inp').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const val = parseFloat(e.target.value);
+      /* Valeur vide ou 0 → supprime l'override pour revenir au prix du dump */
+      if (!val || val <= 0) {
+        const all = getBriRunePrices();
+        delete all[e.target.dataset.stat];
+        localStorage.setItem(BRI_RUNE_PRICES_KEY, JSON.stringify(all));
+      } else {
+        saveBriRunePrice(e.target.dataset.stat, val);
+      }
+      const coefInp = document.getElementById('bri-server-coef-inp');
+      const curCoef = parseFloat(coefInp?.value) || getBriServerCoef();
+      const dc      = coefInp?.dataset.dumpCoef !== '' ? parseFloat(coefInp.dataset.dumpCoef) : null;
+      renderBrisage(item, ingredients, curCoef, getBriRunePrices(), dc);
+    });
+  });
 }
 
 /* ================================================================
@@ -1872,6 +2108,10 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
 
   /* Données brisage pré-calculées (type + PA) */
   const brisageData = getBrisageData();
+  /* Coefficients imagiro (pa sans niveau) — fallback quand BRISAGE_KEY vide */
+  let _imgCoeffsRaw = {};
+  try { _imgCoeffsRaw = JSON.parse(localStorage.getItem(IMAGIRO_COEFFS_KEY) || '{}'); } catch { /* ignore */ }
+  const imgCoeffs = _imgCoeffsRaw;
 
   /* Heuristique nom — fallback si pas de données brisage */
   const TYPE_KW = {
@@ -1925,11 +2165,12 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
     if (mode === 'brisage') {
       /* ── Mode Brisage : valeur = runes estimées × prix Rune Ba ── */
       const bd    = brisageData[itemId];
-      const pa    = bd?.pa    ?? null;
+      const pa    = bd?.pa    ?? imgCoeffs[itemId] ?? null;
       const level = bd?.level ?? null;
-      if (pa == null || level == null) continue;   // données requises
+      if (pa == null) continue;   // données requises
 
-      const runesEst     = Math.round(pa * level * 0.015);
+      /* Si level connu : formule exacte ; sinon : pa = score de classement direct */
+      const runesEst     = level != null ? Math.round(pa * level * 0.015) : pa;
       const brisageValue = runePrice > 0 ? runesEst * runePrice : null;
       const net          = brisageValue != null ? brisageValue - craftCost : null;
       const roi          = (net != null && craftCost > 0) ? net / craftCost : null;
@@ -1988,10 +2229,12 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
   }
 
   /* ── Rendu table ── */
+  const hasLevel = rows.some(r => r.level != null);
   const headersBrisage = `
     <th>#</th><th>Item</th><th class="tc">Niv.</th>
     <th class="tr" title="Coefficient de brisage">Coeff.</th>
-    <th class="tr" title="Runes générées estimées à coeff. serveur 100% — Formule : Coeff. × Niveau × 0,015">Runes générées</th>
+    <th class="tr" title="${hasLevel ? 'Runes générées estimées à coeff. serveur 100% — Formule : Coeff. × Niveau × 0,015' : 'Score de brisage (niveau non disponible — classement relatif)'}">
+      ${hasLevel ? 'Runes générées' : 'Score brisage'}</th>
     <th class="tr">Coût craft</th>
     <th class="tr" title="Valeur totale des runes générées (quantité × prix rune saisi)">${runePrice > 0 ? 'Revenus runes' : '—'}</th>
     <th class="tr">Marge</th>
@@ -2055,6 +2298,7 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
       ${rows.length} items analysés · top ${top.length} affiché${top.length > 1 ? 's' : ''}
       · budget ${budget === Infinity ? 'illimité' : fmtKa(budget)}
       ${mode === 'brisage' && runePrice === 0 ? ' · <em>Entrez un prix de rune pour voir la marge et le ROI</em>' : ''}
+      ${mode === 'brisage' && !hasLevel ? ' · <em>Niveau non disponible — "Score brisage" = classement relatif, non absolu</em>' : ''}
     </div>
   `;
 
@@ -2103,53 +2347,96 @@ async function briLoadItemById(id) {
   } catch (e) { briError('Erreur chargement : ' + e.message); }
 }
 
-/* ── Import fichier JSON de prix ── */
-document.getElementById('icfg-import-file')?.addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const el = document.getElementById('icfg-dump-status');
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
+/* ── Import fichier(s) JSON de prix ── */
+async function _processOneImportFile(file) {
+  const text = await file.text();
+  const data = JSON.parse(text);
 
-    /* Cas 1 : fichier dump complet { ts, count, prices } */
-    if (data.prices && typeof data.prices === 'object') {
-      localStorage.setItem(DUMP_KEY, JSON.stringify(data));
-      _priceDump = data;
-      if (el) { el.className = 'icfg-dump-status ok'; el.textContent = `✅ ${Object.keys(data.prices).length} prix importés`; }
-    }
-    /* Cas 2 : fichier craft-data [ {itemID, ...} ] */
-    else if (Array.isArray(data) && data[0]?.itemID !== undefined) {
-      localStorage.setItem(CRAFT_DATA_KEY, JSON.stringify(data));
-      if (el) { el.className = 'icfg-dump-status ok'; el.textContent = `✅ craft-data importé (${data.length} recettes)`; }
-    }
-    /* Cas 3 : bundle { dump, craftData } */
-    else if (data.dump && data.craftData) {
-      localStorage.setItem(DUMP_KEY, JSON.stringify(data.dump));
-      localStorage.setItem(CRAFT_DATA_KEY, JSON.stringify(data.craftData));
-      _priceDump = data.dump;
-      if (el) { el.className = 'icfg-dump-status ok'; el.textContent = `✅ ${Object.keys(data.dump.prices).length} prix + ${data.craftData.length} recettes importés`; }
-    }
-    /* Cas 4 : fichier coefficients de brisage { [itemId]: paValue } */
-    else if (
-      typeof data === 'object' && !Array.isArray(data) &&
-      !data.ts && !data.prices && !data.dump && !data.craftData &&
-      Object.keys(data).length > 0 &&
-      typeof Object.values(data)[0] === 'number'
-    ) {
-      localStorage.setItem(BRISAGE_KEY, JSON.stringify(data));
-      if (el) { el.className = 'icfg-dump-status ok'; el.textContent = `✅ ${Object.keys(data).length} coefficients de brisage importés`; }
-    }
-    else {
-      throw new Error('Format non reconnu');
-    }
-    imagiroUpdateDumpStatus();
-  } catch (err) {
-    if (el) { el.className = 'icfg-dump-status err'; el.textContent = `❌ Erreur import : ${err.message}`; }
+  /* Cas 1 : fichier dump complet { ts, count, prices } */
+  if (data.prices && typeof data.prices === 'object') {
+    localStorage.setItem(DUMP_KEY, JSON.stringify(data));
+    _priceDump = data;
+    return `${Object.keys(data.prices).length} prix importés`;
   }
-  /* Reset input pour permettre re-import du même fichier */
+  /* Cas 2 : fichier craft-data [ {itemID, ...} ] */
+  if (Array.isArray(data) && data[0]?.itemID !== undefined) {
+    localStorage.setItem(CRAFT_DATA_KEY, JSON.stringify(data));
+    return `craft-data importé (${data.length} recettes)`;
+  }
+  /* Cas 3 : bundle { dump, craftData } */
+  if (data.dump && data.craftData) {
+    localStorage.setItem(DUMP_KEY, JSON.stringify(data.dump));
+    localStorage.setItem(CRAFT_DATA_KEY, JSON.stringify(data.craftData));
+    _priceDump = data.dump;
+    return `${Object.keys(data.dump.prices).length} prix + ${data.craftData.length} recettes importés`;
+  }
+  /* Cas 4 : fichier coefficients de brisage { [itemId]: paValue } */
+  if (
+    typeof data === 'object' && !Array.isArray(data) &&
+    !data.ts && !data.prices && !data.dump && !data.craftData &&
+    Object.keys(data).length > 0 &&
+    typeof Object.values(data)[0] === 'number'
+  ) {
+    localStorage.setItem(IMAGIRO_COEFFS_KEY, JSON.stringify(data));
+    return `${Object.keys(data).length} coefficients de brisage importés`;
+  }
+  throw new Error('Format non reconnu');
+}
+
+async function _handleImportFiles(files) {
+  const el = document.getElementById('icfg-dump-status');
+  const ok = [], err = [];
+  for (const file of files) {
+    try {
+      ok.push(`${file.name} → ${await _processOneImportFile(file)}`);
+    } catch (e) {
+      err.push(`${file.name} : ${e.message}`);
+    }
+  }
+  if (el) {
+    if (err.length === 0) {
+      el.className = 'icfg-dump-status ok';
+      el.textContent = '✅ ' + ok.join(' | ');
+    } else if (ok.length === 0) {
+      el.className = 'icfg-dump-status err';
+      el.textContent = '❌ ' + err.join(' | ');
+    } else {
+      el.className = 'icfg-dump-status ok';
+      el.textContent = '⚠️ ' + ok.join(' | ') + ' — ❌ ' + err.join(', ');
+    }
+  }
+  imagiroUpdateDumpStatus();
+}
+
+document.getElementById('icfg-import-file')?.addEventListener('change', async e => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  await _handleImportFiles(files);
   e.target.value = '';
 });
+
+/* Drag-and-drop sur la zone d'import */
+(function () {
+  const zone = document.getElementById('icfg-import-zone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    zone.style.background = 'rgba(200,168,75,.08)';
+    zone.style.borderColor = 'var(--gold-main)';
+  });
+  zone.addEventListener('dragleave', () => {
+    zone.style.background = '';
+    zone.style.borderColor = '';
+  });
+  zone.addEventListener('drop', async e => {
+    e.preventDefault();
+    zone.style.background = '';
+    zone.style.borderColor = '';
+    const files = [...e.dataTransfer.files].filter(f => f.name.endsWith('.json'));
+    if (!files.length) return;
+    await _handleImportFiles(files);
+  });
+}());
 
 /* ── Restauration au chargement de la page ── */
 craftRestoreState();

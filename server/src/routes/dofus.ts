@@ -3,6 +3,31 @@ import { getResource, getResourceBatch, getEquipmentAll } from '../dofusApi';
 
 const router = Router();
 
+// Cache in-memory pour les métadonnées équipement (TTL 1h)
+let equipmentMetaCache: { items: { ankama_id: number; name: string; level: number; type: string }[]; ts: number } | null = null;
+const CACHE_TTL_MS = 60 * 60 * 1000;
+
+// GET /api/equipment/meta - liste simplifiée de tout l'équipement (id, nom, niveau, type)
+router.get('/equipment/meta', async (_req: Request, res: Response) => {
+  try {
+    if (equipmentMetaCache && Date.now() - equipmentMetaCache.ts < CACHE_TTL_MS) {
+      return res.json({ items: equipmentMetaCache.items });
+    }
+    const data = await getEquipmentAll({});
+    const items = (data.items ?? []).map((item: any) => ({
+      ankama_id: item.ankama_id,
+      name: item.name,
+      level: item.level,
+      type: item.type?.name ?? '',
+    }));
+    equipmentMetaCache = { items, ts: Date.now() };
+    res.json({ items });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    res.status(500).json({ error: message });
+  }
+});
+
 // GET /api/resources/batch?ids=1,2,3
 router.get('/resources/batch', async (req: Request, res: Response) => {
   try {

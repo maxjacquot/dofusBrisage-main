@@ -127,9 +127,10 @@ imagiroSyncCreds();
 /* ================================================================
    PRICE DUMP — cache local de tous les prix imagiro
 ================================================================ */
-const DUMP_KEY       = 'imagiro_dump';
-const CRAFT_DATA_KEY = 'imagiro_craft_data';
-const BRISAGE_KEY    = 'dofus_brisage_pa';
+const DUMP_KEY          = 'imagiro_dump';
+const CRAFT_DATA_KEY    = 'imagiro_craft_data';
+const BRISAGE_KEY       = 'dofus_brisage_pa';
+const IMAGIRO_COEFFS_KEY = 'imagiro_brisage_coeffs';
 
 /** Retourne le dump chargé en mémoire (rapide) ou depuis localStorage */
 let _priceDump = null;
@@ -184,11 +185,15 @@ function getBrisageData() {
 
 /**
  * Retourne uniquement les coefficients PA { [itemId]: paValue }.
- * Compatible avec les deux formats de fichier (ancien et nouveau).
+ * Fusionne BRISAGE_KEY (export manuel, prioritaire) et IMAGIRO_COEFFS_KEY (dump imagiro).
  */
 function getBrisageCoeffs() {
-  const data = getBrisageData();
   const result = {};
+  try {
+    const raw = localStorage.getItem(IMAGIRO_COEFFS_KEY);
+    if (raw) Object.assign(result, JSON.parse(raw));
+  } catch { /* ignore */ }
+  const data = getBrisageData();
   for (const [id, val] of Object.entries(data)) result[id] = val.pa;
   return result;
 }
