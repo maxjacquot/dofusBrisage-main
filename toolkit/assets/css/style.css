@@ -1220,3 +1220,399 @@ body {
   background: linear-gradient(90deg, #1a6640, #4dde8a);
   transition: width .3s ease;
 }
+
+/* ============================================================
+   ÉLEVAGE — Refonte 3.5
+============================================================ */
+
+/* ── Layout ── */
+#module-elevage { max-width: 1000px; }
+
+.elv-header { margin-bottom: 2rem; }
+.elv-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.45rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold-main) 60%, var(--gold-muted) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: .05em; margin: 0 0 .2rem;
+}
+.elv-subtitle { font-size: .72rem; color: var(--text-500); text-transform: uppercase; letter-spacing: .1em; }
+
+.elv-block { margin-bottom: 1.75rem; }
+.elv-block-label {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--text-500); margin-bottom: .65rem;
+}
+
+/* ── Grille de montures ── */
+.elv-mount-grid { display: flex; flex-wrap: wrap; gap: .45rem; }
+
+.elv-mount-btn {
+  display: flex; align-items: center; gap: .4rem;
+  padding: .35rem .7rem .35rem .4rem;
+  background: var(--bg-card); border: 1px solid var(--border-gold);
+  border-radius: var(--r); color: var(--text-300);
+  font-family: 'Nunito', sans-serif; font-size: .8rem;
+  cursor: pointer; transition: all var(--t);
+}
+.elv-mount-btn:hover:not(.active) { border-color: var(--gold-muted); color: var(--text-100); background: var(--bg-elevated); }
+.elv-mount-btn.active { color: var(--text-100); font-weight: 700; }
+.elv-mount-name { white-space: nowrap; }
+
+/* ── Sélecteur de génération ── */
+.elv-gen-row {
+  display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1rem;
+}
+.elv-gen-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--border-gold); background: var(--bg-card);
+  color: var(--gold-main); font-size: 1.25rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all var(--t); flex-shrink: 0; font-family: 'Nunito', sans-serif;
+}
+.elv-gen-btn:hover:not(:disabled) { background: var(--bg-elevated); border-color: var(--gold-main); }
+.elv-gen-btn:disabled { opacity: .3; cursor: default; }
+
+.elv-gen-display { display: flex; flex-direction: column; gap: .1rem; }
+.elv-gen-number { font-family: 'Cinzel', serif; font-size: 1.55rem; font-weight: 700; line-height: 1; }
+.elv-gen-info { font-size: .75rem; color: var(--text-500); }
+
+.elv-gen-dots { display: flex; gap: .35rem; }
+.elv-gen-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border-gold); background: var(--bg-card);
+  color: var(--text-500); font-size: .7rem; font-weight: 700;
+  cursor: pointer; transition: all var(--t);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Nunito', sans-serif;
+}
+.elv-gen-dot:hover:not(.active) { border-color: var(--gold-muted); color: var(--text-300); }
+.elv-gen-dot.passed { border-color: var(--gold-muted); background: var(--bg-elevated); color: var(--text-300); }
+.elv-gen-dot.active { font-weight: 800; color: #08080f; }
+
+/* ── Toggle vue ── */
+.elv-view-toggle {
+  display: flex; border: 1px solid var(--border-gold);
+  border-radius: var(--r) var(--r) 0 0; overflow: hidden;
+  border-bottom: none;
+}
+.elv-toggle-btn {
+  flex: 1; padding: .5rem 1rem;
+  background: var(--bg-card); border: none;
+  color: var(--text-500); font-family: 'Cinzel', serif;
+  font-size: .75rem; font-weight: 600; letter-spacing: .04em;
+  cursor: pointer; transition: all var(--t);
+}
+.elv-toggle-btn:hover:not(.active) { color: var(--text-300); background: var(--bg-elevated); }
+.elv-toggle-btn.active { background: var(--bg-elevated); color: var(--gold-main); }
+.elv-toggle-btn + .elv-toggle-btn { border-left: 1px solid var(--border-gold); }
+
+/* ── Panneau de vue ── */
+.elv-view-panel {
+  border: 1px solid var(--border-gold);
+  border-radius: 0 0 var(--r) var(--r);
+  padding: 1.25rem 1rem; background: var(--bg-surface);
+  margin-bottom: 1rem;
+}
+
+/* ── Arbre généalogique ── */
+.elv-level {
+  display: flex; align-items: center; gap: 1rem;
+  padding: .6rem .75rem; border-radius: var(--r);
+  transition: background var(--t);
+}
+.elv-level:hover { background: var(--bg-card); }
+.elv-level.target { border-radius: var(--r); }
+
+.elv-level-label {
+  display: flex; align-items: center; gap: .5rem;
+  min-width: 140px; flex-shrink: 0;
+}
+.elv-gen-tag {
+  display: inline-block; padding: .18rem .5rem;
+  border: 1px solid; border-radius: 20px;
+  font-family: 'Cinzel', serif; font-size: .72rem; font-weight: 600;
+}
+.elv-badge {
+  font-size: .62rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.target-badge { color: var(--gold-main); }
+.base-badge   { color: var(--text-500); }
+
+.elv-nodes {
+  display: flex; flex-wrap: wrap; gap: .28rem;
+  flex: 1; align-items: center;
+}
+.elv-node {
+  width: 28px; height: 28px;
+  border: 1px solid; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-card); transition: transform .1s;
+  flex-shrink: 0;
+}
+.elv-node:hover { transform: scale(1.12); }
+.elv-node.target { width: 36px; height: 36px; border-radius: 8px; border-width: 1.5px; }
+.elv-node.overflow {
+  background: var(--bg-elevated) !important;
+  min-width: 44px; cursor: default;
+}
+.elv-node.overflow:hover { transform: none; }
+
+.elv-count {
+  min-width: 56px; text-align: right;
+  font-family: 'Cinzel', serif; font-size: .82rem; font-weight: 700;
+  flex-shrink: 0;
+}
+
+.elv-connector {
+  display: flex; align-items: center;
+  justify-content: center; height: 18px;
+  padding: 0 .75rem; gap: 0;
+  margin-left: 90px;
+}
+.elv-connector-line { flex: 1; border-top: 1px dashed; }
+.elv-empty {
+  text-align: center; color: var(--text-500);
+  font-style: italic; font-size: .85rem; padding: 1.5rem;
+}
+
+/* ── Tableau récapitulatif ── */
+.elv-table {
+  width: 100%; border-collapse: collapse; font-size: .88rem;
+  margin-bottom: 1rem;
+}
+.elv-table th {
+  text-align: left; padding: .45rem .7rem;
+  color: var(--text-500); font-size: .68rem;
+  text-transform: uppercase; letter-spacing: .07em;
+  border-bottom: 1px solid var(--border-gold);
+  font-family: 'Cinzel', serif;
+}
+.elv-table td {
+  padding: .5rem .7rem; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.elv-table tr:last-child td { border-bottom: none; }
+.elv-table tr:hover td { background: var(--bg-elevated); }
+
+.elv-total-card {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .7rem 1rem; background: var(--bg-elevated);
+  border: 1px solid; border-radius: var(--r); margin-bottom: .75rem;
+}
+.elv-total-label { font-size: .82rem; color: var(--text-300); font-weight: 600; }
+.elv-total-value { font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 700; }
+
+.elv-note {
+  display: flex; gap: .6rem; padding: .7rem .9rem;
+  background: var(--bg-card); border: 1px solid var(--border-gold);
+  border-radius: var(--r); font-size: .8rem; color: var(--text-300); line-height: 1.55;
+}
+.elv-note strong { color: var(--text-100); }
+.elv-note em { color: var(--gold-muted); }
+
+/* ── Info cards ── */
+.elv-info-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: .65rem;
+}
+.elv-info-card {
+  background: var(--bg-card); border: 1px solid var(--border-gold);
+  border-radius: var(--rL); padding: 1rem; transition: all var(--t);
+}
+.elv-info-card:hover { border-color: var(--gold-muted); background: var(--bg-elevated); }
+.elv-info-icon { font-size: 1.3rem; margin-bottom: .35rem; }
+.elv-info-title { font-family: 'Cinzel', serif; font-size: .78rem; font-weight: 700; color: var(--gold-main); margin-bottom: .35rem; }
+.elv-info-body { font-size: .78rem; color: var(--text-300); line-height: 1.6; }
+.elv-info-body strong { color: var(--text-100); }
+
+/* ── Espèces tabs ── */
+.elv-species-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.elv-species-btn {
+  padding: .38rem .85rem; border-radius: var(--r); font-size: .8rem; font-weight: 600;
+  border: 1px solid var(--border-gold); background: var(--bg-card);
+  color: var(--text-300); cursor: pointer; transition: all var(--t);
+  font-family: 'Nunito', sans-serif;
+}
+.elv-species-btn:hover { border-color: var(--gold-muted); color: var(--text-100); }
+.elv-species-btn.active {
+  border-color: var(--gold-bright); background: rgba(200,160,60,.12);
+  color: var(--gold-bright); box-shadow: 0 0 8px rgba(200,160,60,.25);
+}
+
+/* ── Images espèces ── */
+.elv-species-imgs { display: flex; gap: .75rem; flex-wrap: wrap; align-items: flex-start; }
+.elv-species-img {
+  height: 90px; width: auto; border-radius: var(--r);
+  border: 1px solid var(--border-gold); object-fit: contain;
+  background: var(--bg-card); padding: .25rem;
+}
+
+/* ── Image dans une info card ── */
+.elv-card-img {
+  width: 100%; max-height: 130px; object-fit: cover;
+  border-radius: var(--r); margin-top: .65rem;
+  border: 1px solid var(--border); opacity: .9;
+}
+.elv-guide-img {
+  width: 100%; max-height: 200px; object-fit: contain;
+  border-radius: var(--r); border: 1px solid var(--border-gold);
+  background: var(--bg-card);
+}
+
+/* ── Note stérilité sous tableau ── */
+.elv-sterile-note {
+  font-size: .78rem; color: #b08020; line-height: 1.55;
+  padding: .55rem .8rem; background: rgba(160,100,0,.08);
+  border: 1px solid rgba(160,100,0,.3); border-radius: var(--r);
+  margin-top: .5rem;
+}
+.elv-sterile-note strong { color: #f5c842; }
+
+/* ── Calculateur probabilité ── */
+.elv-prob-card {
+  background: var(--bg-card); border: 1px solid var(--border-gold);
+  border-radius: var(--rL); padding: 1rem 1.1rem;
+}
+.elv-prob-formula {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .35rem;
+  margin-bottom: .85rem;
+}
+.elv-prob-chip {
+  font-size: .72rem; padding: .2rem .55rem; border-radius: 99px;
+  background: rgba(200,160,60,.1); border: 1px solid var(--border-gold);
+  color: var(--gold-muted); white-space: nowrap;
+}
+.elv-prob-op { color: var(--text-500); font-size: .8rem; }
+
+.elv-prob-inputs { display: flex; flex-direction: column; gap: .55rem; margin-bottom: .85rem; }
+.elv-prob-field { display: flex; flex-direction: column; gap: .2rem; }
+.elv-prob-field label { font-size: .72rem; color: var(--text-500); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.elv-prob-slider-row { display: flex; align-items: center; gap: .6rem; }
+.elv-slider { flex: 1; accent-color: var(--gold-main); }
+.elv-prob-lvl { font-size: .75rem; color: var(--gold-main); font-weight: 700; min-width: 50px; }
+.elv-prob-opti label { display: flex; align-items: center; gap: .5rem; font-size: .78rem; cursor: pointer; color: var(--text-300); text-transform: none; letter-spacing: 0; }
+.elv-prob-opti input[type="checkbox"] { accent-color: var(--gold-main); width: 15px; height: 15px; }
+
+.elv-prob-result-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+.elv-prob-bar-wrap { flex: 1; height: 8px; background: var(--bg-elevated); border-radius: 99px; overflow: hidden; }
+.elv-prob-bar { height: 100%; border-radius: 99px; transition: width .3s ease, background .3s ease; }
+.elv-prob-result { font-family: 'Cinzel', serif; font-size: 1.25rem; font-weight: 700; min-width: 70px; text-align: right; }
+.elv-prob-tip { font-size: .75rem; color: var(--text-500); line-height: 1.55; padding: .5rem .65rem; background: var(--bg-elevated); border-radius: var(--r); }
+.elv-prob-tip strong { color: var(--gold-bright); }
+
+/* ── XP montures ── */
+.elv-xp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .75rem; }
+@media(max-width:600px){ .elv-xp-grid { grid-template-columns: repeat(2,1fr); } }
+.elv-xp-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: .65rem .75rem; text-align: center;
+}
+.elv-xp-best { border-color: var(--gold-muted); background: rgba(200,160,60,.06); }
+.elv-xp-tier { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-500); margin-bottom: .2rem; }
+.elv-xp-rate { font-family: 'Cinzel', serif; font-size: .85rem; font-weight: 700; color: var(--gold-main); }
+.elv-xp-dur { font-size: .7rem; color: var(--text-500); margin-top: .15rem; }
+.elv-xp-best .elv-xp-rate { color: var(--gold-bright); }
+
+.elv-xp-totals { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .65rem; }
+.elv-xp-total-item {
+  display: flex; align-items: center; gap: .75rem; padding: .5rem .75rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r);
+  font-size: .82rem; color: var(--text-300);
+}
+.elv-xp-total-item strong { color: var(--gold-main); font-size: .9rem; }
+.elv-xp-time { font-size: .72rem; color: var(--text-500); margin-left: auto; }
+.elv-xp-tip {
+  font-size: .75rem; color: var(--text-500); line-height: 1.55; padding: .5rem .65rem;
+  background: var(--bg-elevated); border-radius: var(--r);
+}
+.elv-xp-tip strong { color: var(--gold-bright); }
+
+/* ── Almanax ── */
+.elv-almanax-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: .45rem;
+}
+.elv-almanax-item {
+  display: flex; flex-direction: column; gap: .15rem; padding: .55rem .75rem;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); font-size: .78rem; color: var(--text-300);
+}
+.elv-alm-cap { border-color: rgba(200,160,60,.4); background: rgba(200,160,60,.06); }
+.elv-alm-month {
+  font-family: 'Cinzel', serif; font-size: .7rem; font-weight: 700;
+  color: var(--gold-muted); text-transform: uppercase; letter-spacing: .07em;
+}
+.elv-alm-cap .elv-alm-month { color: var(--gold-bright); }
+
+/* ── Stats & Générations ── */
+.elv-stats-intro {
+  font-size: .8rem; color: var(--text-300); line-height: 1.6;
+  margin-bottom: 1rem;
+}
+.elv-stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: .75rem; margin-bottom: .75rem;
+}
+.elv-stats-card {
+  background: var(--bg-card); border: 1px solid var(--border-gold);
+  border-radius: var(--rL); padding: .85rem; display: flex; flex-direction: column; gap: .6rem;
+}
+.elv-stats-species-label {
+  font-family: 'Cinzel', serif; font-size: .8rem; font-weight: 700;
+  color: var(--gold-bright); letter-spacing: .04em;
+}
+.elv-stats-link {
+  position: relative; display: block; border-radius: var(--r); overflow: hidden;
+  border: 1px solid var(--border); transition: border-color var(--t);
+}
+.elv-stats-link:hover { border-color: var(--gold-muted); }
+.elv-stats-img {
+  width: 100%; max-height: 200px; object-fit: cover; display: block;
+  transition: opacity var(--t);
+}
+.elv-stats-link:hover .elv-stats-img { opacity: .85; }
+.elv-stats-expand {
+  position: absolute; bottom: .4rem; right: .5rem;
+  background: rgba(8,8,15,.7); color: var(--gold-main);
+  font-size: .7rem; padding: .15rem .45rem; border-radius: 99px;
+  pointer-events: none;
+}
+.elv-stats-known { display: flex; flex-direction: column; gap: .35rem; }
+.elv-stats-known-title {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-500);
+}
+.elv-gen-tags-row { display: flex; flex-wrap: wrap; gap: .3rem; }
+.elv-gen-ref-tag {
+  font-size: .7rem; padding: .15rem .45rem; border-radius: 99px;
+  border: 1px solid var(--border-gold); color: var(--text-300);
+  background: var(--bg-elevated); white-space: nowrap;
+}
+.elv-gen-ref-tag.g1  { border-color: rgba(150,200,100,.4); color: #a8e07a; background: rgba(100,180,60,.08); }
+.elv-gen-ref-tag.g2  { border-color: rgba(100,180,220,.4); color: #81c9ef; background: rgba(50,140,200,.08); }
+.elv-gen-ref-tag.g5  { border-color: rgba(200,140,220,.4); color: #d98ee6; background: rgba(150,80,200,.08); }
+.elv-gen-ref-tag.g6  { border-color: rgba(220,160,80,.4);  color: #e8b860; background: rgba(180,110,20,.08); }
+.elv-gen-ref-tag.g8  { border-color: rgba(220,80,80,.4);   color: #e87878; background: rgba(180,40,40,.08); }
+.elv-gen-ref-tag.g9  { border-color: rgba(80,180,160,.4);  color: #52c4b8; background: rgba(40,140,120,.08); }
+.elv-gen-ref-tag.g10 { border-color: rgba(200,160,60,.6);  color: var(--gold-bright); background: rgba(200,160,60,.12); font-weight: 700; }
+
+.elv-stats-note {
+  font-size: .73rem; color: var(--text-500); line-height: 1.5;
+  padding: .3rem .5rem; background: var(--bg-elevated); border-radius: var(--r);
+}
+.elv-stats-note strong { color: var(--text-300); }
+
+.elv-stats-full-note {
+  font-size: .75rem; color: var(--text-500); padding: .5rem .75rem;
+  background: var(--bg-elevated); border-radius: var(--r); line-height: 1.6;
+}
+.elv-ext-link { color: var(--gold-muted); text-decoration: underline; }
+.elv-ext-link:hover { color: var(--gold-bright); }
+
+/* ── Badge génération sur bouton monture ── */
+.elv-mount-gen {
+  font-size: .6rem; font-weight: 700; line-height: 1;
+  margin-top: .1rem; letter-spacing: .03em;
+}

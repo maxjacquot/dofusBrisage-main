@@ -40,6 +40,9 @@
     <button class="tab-btn" data-tab="item-meta">
       🔎 <span class="tab-label">Analyse Item</span>
     </button>
+    <button class="tab-btn" data-tab="elevage">
+      🐾 <span class="tab-label">Élevage</span>
+    </button>
     <button class="tab-btn imagiro-cfg-btn" id="imagiro-cfg-open" title="Configurer les prix HDV (imagiro)" onclick="imagiroOpenConfig()">
       💹 <span class="tab-label" id="imagiro-cfg-dot">Prix HDV ●</span>
     </button>
@@ -639,6 +642,327 @@
 
   </section>
 
+
+  <!-- ===== ÉLEVAGE ===== -->
+  <section id="module-elevage" class="module">
+
+    <!-- Header avec bannière -->
+    <div class="elv-header">
+      <div>
+        <h2 class="elv-title">Élevage — Refonte 3.5</h2>
+        <p class="elv-subtitle">Arbre généalogique · Calculateur de générations · Probabilités</p>
+      </div>
+    </div>
+
+    <!-- Sélecteur d'espèce -->
+    <div class="elv-block">
+      <div class="elv-block-label">Type de monture</div>
+      <div class="elv-species-tabs" id="elv-species-tabs"></div>
+      <div class="elv-species-imgs">
+        <img src="assets/img/elevage/tuto3i7dragos_orig.png"   alt="Dragodindes"  class="elv-species-img" title="Dragodindes"/>
+        <img src="assets/img/elevage/tuto3i8muldos_orig.png"   alt="Muldos"       class="elv-species-img" title="Muldos"/>
+        <img src="assets/img/elevage/tuto3i9volkornes_orig.png" alt="Volkornes"    class="elv-species-img" title="Volkornes"/>
+      </div>
+    </div>
+
+    <!-- Sélecteur de couleur/variante -->
+    <div class="elv-block">
+      <div class="elv-block-label">Couleur / Variante</div>
+      <div class="elv-mount-grid" id="elv-mount-grid"></div>
+    </div>
+
+    <!-- Sélecteur de génération -->
+    <div class="elv-block">
+      <div class="elv-block-label">Génération cible</div>
+      <div class="elv-gen-row">
+        <button class="elv-gen-btn" id="elv-gen-minus">−</button>
+        <div class="elv-gen-display">
+          <span class="elv-gen-number" id="elv-gen-number">Gen 3</span>
+          <span class="elv-gen-info" id="elv-gen-info"></span>
+        </div>
+        <button class="elv-gen-btn" id="elv-gen-plus">+</button>
+      </div>
+      <div class="elv-gen-dots" id="elv-gen-dots"></div>
+    </div>
+
+    <!-- Toggle vue -->
+    <div class="elv-view-toggle" id="elv-view-toggle">
+      <button class="elv-toggle-btn active" data-view="tree">🌳 Arbre généalogique</button>
+      <button class="elv-toggle-btn" data-view="table">📊 Tableau récapitulatif</button>
+    </div>
+
+    <!-- Vue arbre -->
+    <div class="elv-view-panel" id="elv-panel-tree">
+      <div id="elv-tree"></div>
+    </div>
+
+    <!-- Vue tableau -->
+    <div class="elv-view-panel" id="elv-panel-table" style="display:none">
+      <div id="elv-table-wrap"></div>
+      <div class="elv-total-row" id="elv-total-row"></div>
+    </div>
+
+    <!-- ── Calculateur probabilité génération cible ── -->
+    <div class="elv-block" style="margin-top:2rem">
+      <div class="elv-block-label">🎲 Probabilité d'obtenir la génération cible</div>
+      <div class="elv-prob-card">
+        <div class="elv-prob-formula">
+          <span class="elv-prob-chip">30% de base</span>
+          <span class="elv-prob-op">+</span>
+          <span class="elv-prob-chip">(Niv. parent 1 + Niv. parent 2) × 0,15%</span>
+          <span class="elv-prob-op">+</span>
+          <span class="elv-prob-chip">Optimakina +10%</span>
+        </div>
+        <div class="elv-prob-inputs">
+          <div class="elv-prob-field">
+            <label>Parent 1</label>
+            <div class="elv-prob-slider-row">
+              <input type="range" id="elv-p1-input" min="1" max="200" value="1" class="elv-slider"/>
+              <span class="elv-prob-lvl" id="elv-p1-val">Niv. 1</span>
+            </div>
+          </div>
+          <div class="elv-prob-field">
+            <label>Parent 2</label>
+            <div class="elv-prob-slider-row">
+              <input type="range" id="elv-p2-input" min="1" max="200" value="1" class="elv-slider"/>
+              <span class="elv-prob-lvl" id="elv-p2-val">Niv. 1</span>
+            </div>
+          </div>
+          <div class="elv-prob-field elv-prob-opti">
+            <label>
+              <input type="checkbox" id="elv-opti-check"/>
+              Utiliser une Optimakina (+10%)
+            </label>
+          </div>
+        </div>
+        <div class="elv-prob-result-row">
+          <div class="elv-prob-bar-wrap">
+            <div class="elv-prob-bar" id="elv-prob-bar" style="width:30%"></div>
+          </div>
+          <span class="elv-prob-result" id="elv-prob-result">30.00%</span>
+        </div>
+        <div class="elv-prob-tip">
+          💡 Deux parents niv. 200 + Optimakina = <strong>100%</strong> de chance d'obtenir la génération cible.
+          La génération cible = max génération dans l'arbre généalogique des deux parents + 1.
+        </div>
+        <img src="assets/img/elevage/tuto3i63gencible_orig.jpg" alt="Génération cible" class="elv-guide-img" style="margin-top:.75rem"/>
+      </div>
+    </div>
+
+    <!-- ── Mécaniques de l'élevage ── -->
+    <div class="elv-block" style="margin-top:2rem">
+      <div class="elv-block-label">Mécaniques clés (Refonte 3.5)</div>
+      <div class="elv-info-grid">
+
+        <div class="elv-info-card">
+          <div class="elv-info-icon">🥚</div>
+          <div class="elv-info-title">Accouplement</div>
+          <div class="elv-info-body">
+            Un mâle et une femelle <strong>fécondes</strong> s'accouplent en 1 clic dans l'interface d'élevage.
+            La naissance est <strong>instantanée</strong> en 3.5 (pas de gestation).
+            Les deux parents deviennent <strong>stériles</strong> après et ne peuvent plus se reproduire.
+          </div>
+          <img src="assets/img/elevage/tuto3i56accouplement_orig.png" alt="Accouplement" class="elv-card-img"/>
+        </div>
+
+        <div class="elv-info-card">
+          <div class="elv-info-icon">🔁</div>
+          <div class="elv-info-title">Clonage</div>
+          <div class="elv-info-body">
+            Placez deux montures de <strong>même génération et même espèce</strong> dans l'interface de clonage.
+            Les deux sont consommées et vous récupérez l'une des deux, <strong>fertile</strong>.
+            Les jauges sont réinitialisées et la capacité spéciale est perdue.
+          </div>
+          <img src="assets/img/elevage/tuto3i64clonage_orig.png" alt="Clonage" class="elv-card-img"/>
+        </div>
+
+        <div class="elv-info-card">
+          <div class="elv-info-icon">📊</div>
+          <div class="elv-info-title">Généalogie</div>
+          <div class="elv-info-body">
+            L'arbre généalogique remonte jusqu'aux <strong>grands-parents</strong> (3 niveaux).
+            La génération cible est la plus haute génération atteignable depuis les arbres des deux parents + 1.
+            Les croissements possibles définissent les couleurs obtenues.
+          </div>
+          <img src="assets/img/elevage/tuto3i47genealogie_orig.png" alt="Généalogie" class="elv-card-img"/>
+        </div>
+
+        <div class="elv-info-card">
+          <div class="elv-info-icon">🌡️</div>
+          <div class="elv-info-title">Jauges de l'enclos</div>
+          <div class="elv-info-body">
+            5 jauges à gérer : <strong>Foudroyeur</strong> (↑ Sérénité), <strong>Baffeur</strong> (↓ Sérénité),
+            <strong>Abreuvoir</strong> (Endurance), <strong>Caresseur</strong> (↑ Amour), <strong>Dragofesse</strong> (↓ Amour), <strong>Mangeoire</strong> (XP).
+            Sérénité cible : entre −2 000 et +2 000 pour rendre les montures fécondes.
+          </div>
+          <img src="assets/img/elevage/tuto3i43jauges_orig.png" alt="Jauges enclos" class="elv-card-img"/>
+        </div>
+
+        <div class="elv-info-card">
+          <div class="elv-info-icon">✨</div>
+          <div class="elv-info-title">Makinas</div>
+          <div class="elv-info-body">
+            Consommables craftés par l'éleveur, optionnels à l'accouplement.
+            <strong>Animakina</strong> : capacité aléatoire (Amoureuse 27%, Endurante 27%, Précoce 27%, Sage 14%, Reproducteur 5%).
+            <strong>Kromakina</strong> : capacité Caméléone (100%).
+            <strong>Optimakina</strong> : +10% chance génération cible.
+            Une makina par accouplement, de génération ≥ génération cible.
+          </div>
+          <img src="assets/img/elevage/tuto3i15makina_orig.png" alt="Makinas" class="elv-card-img"/>
+        </div>
+
+        <div class="elv-info-card">
+          <div class="elv-info-icon">⚗️</div>
+          <div class="elv-info-title">Extraction &amp; Génétons</div>
+          <div class="elv-info-body">
+            <strong>Extraction</strong> : une monture stérile de Gen N donne N ressources (Neurone / Ambre / Corne).
+            Gen 1 ne peut pas être extraite. Les montures séniles (avant 3.5) donnent 1 seule ressource.
+            <strong>Génétons</strong> : obtenus à chaque accouplement produisant une nouvelle génération record.
+            Échangeables contre des parchemins, tourmalines et alitons.
+          </div>
+          <img src="assets/img/elevage/tuto3i81geneton_orig.png" alt="Génétons" class="elv-card-img"/>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── XP montures ── -->
+    <div class="elv-block" style="margin-top:1.5rem">
+      <div class="elv-block-label">📈 Monter une monture au niveau 200</div>
+      <div class="elv-xp-grid">
+        <div class="elv-xp-card">
+          <div class="elv-xp-tier">Tier 1</div>
+          <div class="elv-xp-rate">10 XP / 10 s</div>
+          <div class="elv-xp-dur">Se vide en 11h06</div>
+        </div>
+        <div class="elv-xp-card">
+          <div class="elv-xp-tier">Tier 2</div>
+          <div class="elv-xp-rate">20 XP / 10 s</div>
+          <div class="elv-xp-dur">Se vide en 4h09</div>
+        </div>
+        <div class="elv-xp-card">
+          <div class="elv-xp-tier">Tier 3</div>
+          <div class="elv-xp-rate">30 XP / 10 s</div>
+          <div class="elv-xp-dur">Se vide en 1h51</div>
+        </div>
+        <div class="elv-xp-card elv-xp-best">
+          <div class="elv-xp-tier">Tier 4</div>
+          <div class="elv-xp-rate">40 XP / 10 s</div>
+          <div class="elv-xp-dur">Se vide en 42 min</div>
+        </div>
+      </div>
+      <div class="elv-xp-totals">
+        <div class="elv-xp-total-item">
+          <span>Niv. 1 → 100</span>
+          <strong>172 668 XP</strong>
+          <span class="elv-xp-time">~12h en tier 4 permanent · ~24h en tier 2</span>
+        </div>
+        <div class="elv-xp-total-item">
+          <span>Niv. 1 → 200</span>
+          <strong>867 582 XP</strong>
+          <span class="elv-xp-time">~60h en tier 4 · ~100–150h en usage normal</span>
+        </div>
+      </div>
+      <div class="elv-xp-tip">
+        💡 La capacité <strong>Sage</strong> double le gain d'XP.
+        La jauge de mangeoire se vide à la même vitesse qu'il y ait 1 ou 10 montures dans l'enclos — remplissez-le au maximum.
+      </div>
+    </div>
+
+    <!-- ── Stats & Générations par espèce ── -->
+    <div class="elv-block" style="margin-top:1.5rem">
+      <div class="elv-block-label">🗂️ Stats &amp; générations par espèce (source : dofuspourlesnoobs.com)</div>
+      <p class="elv-stats-intro">
+        Ces tableaux montrent <strong>toutes les montures de Gen 1 à Gen 10</strong> avec leurs bonus à niv. 100 et niv. 200.
+        Cliquer sur une image pour l'afficher en pleine taille.
+      </p>
+      <div class="elv-stats-grid">
+
+        <div class="elv-stats-card">
+          <div class="elv-stats-species-label">🦕 Dragodindes</div>
+          <a href="assets/img/elevage/tuto3i10statsdragos_orig.jpg" target="_blank" class="elv-stats-link">
+            <img src="assets/img/elevage/tuto3i10statsdragos_orig.jpg" alt="Stats Dragodindes par génération" class="elv-stats-img"/>
+            <span class="elv-stats-expand">🔍 Agrandir</span>
+          </a>
+          <div class="elv-stats-known">
+            <div class="elv-stats-known-title">Générations connues</div>
+            <div class="elv-gen-tags-row">
+              <span class="elv-gen-ref-tag g1">G1 Orchidée · Ivoire</span>
+              <span class="elv-gen-ref-tag g5">G5 Pourpre</span>
+              <span class="elv-gen-ref-tag g6">G6 Ébène &amp; Orchidée</span>
+              <span class="elv-gen-ref-tag g8">G8 Ivoire &amp; Turquoise</span>
+              <span class="elv-gen-ref-tag g8">G8 Ivoire &amp; Pourpre</span>
+              <span class="elv-gen-ref-tag g9">G9 Émeraude</span>
+              <span class="elv-gen-ref-tag g10">G10 Émeraude &amp; Ivoire</span>
+            </div>
+            <div class="elv-stats-note">Dragodindes : toujours <strong>1 seul croisement possible</strong> quelle que soit la génération.</div>
+          </div>
+        </div>
+
+        <div class="elv-stats-card">
+          <div class="elv-stats-species-label">🦏 Muldos</div>
+          <a href="assets/img/elevage/tuto3i11statsmuldos_orig.jpg" target="_blank" class="elv-stats-link">
+            <img src="assets/img/elevage/tuto3i11statsmuldos_orig.jpg" alt="Stats Muldos par génération" class="elv-stats-img"/>
+            <span class="elv-stats-expand">🔍 Agrandir</span>
+          </a>
+          <div class="elv-stats-known">
+            <div class="elv-stats-known-title">Générations connues</div>
+            <div class="elv-gen-tags-row">
+              <span class="elv-gen-ref-tag g1">G1 Doré · Orchidée</span>
+              <span class="elv-gen-ref-tag g2">G2 Doré &amp; Orchidée</span>
+              <span class="elv-gen-ref-tag g2">G2 Doré &amp; Indigo</span>
+              <span class="elv-gen-ref-tag g9">G9 Corail</span>
+            </div>
+            <div class="elv-stats-note">Muldos : générations <strong>impaires</strong> = plusieurs croisements possibles (jusqu'à 8 pour le Muldo Émeraude).</div>
+          </div>
+        </div>
+
+        <div class="elv-stats-card">
+          <div class="elv-stats-species-label">🐉 Volkornes</div>
+          <a href="assets/img/elevage/tuto3i12statsvolkornes_orig.jpg" target="_blank" class="elv-stats-link">
+            <img src="assets/img/elevage/tuto3i12statsvolkornes_orig.jpg" alt="Stats Volkornes par génération" class="elv-stats-img"/>
+            <span class="elv-stats-expand">🔍 Agrandir</span>
+          </a>
+          <div class="elv-stats-known">
+            <div class="elv-stats-known-title">Générations connues</div>
+            <div class="elv-gen-tags-row">
+              <span class="elv-gen-ref-tag g1">G1–G10 : voir image →</span>
+            </div>
+            <div class="elv-stats-note">Volkornes : générations <strong>impaires</strong> = plusieurs croisements, même règle que les Muldos.</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="elv-stats-full-note">
+        💡 Pour la liste complète des croisements et zones de capture :
+        <a href="https://www.dofuspourlesnoobs.com/dragodindes.html" target="_blank" class="elv-ext-link">Dragodindes</a> ·
+        <a href="https://www.dofuspourlesnoobs.com/muldos.html" target="_blank" class="elv-ext-link">Muldos</a> ·
+        <a href="https://www.dofuspourlesnoobs.com/volkornes.html" target="_blank" class="elv-ext-link">Volkornes</a>
+        sur dofuspourlesnoobs.com.
+      </div>
+    </div>
+
+    <!-- ── Bonus Almanax ── -->
+    <div class="elv-block" style="margin-top:1.5rem">
+      <div class="elv-block-label">📅 Bonus Almanax élevage (le 10 de chaque mois)</div>
+      <div class="elv-almanax-grid">
+        <div class="elv-almanax-item"><span class="elv-alm-month">Janvier</span><span>Abreuvoirs ×2</span></div>
+        <div class="elv-almanax-item elv-alm-cap"><span class="elv-alm-month">Février</span><span>Capacité Endurante garantie</span></div>
+        <div class="elv-almanax-item"><span class="elv-alm-month">Mars</span><span>Foudroyeurs ×2</span></div>
+        <div class="elv-almanax-item"><span class="elv-alm-month">Avril</span><span>Baffeurs ×2</span></div>
+        <div class="elv-almanax-item"><span class="elv-alm-month">Mai</span><span>−15% ingrédients crafts éleveur</span></div>
+        <div class="elv-almanax-item"><span class="elv-alm-month">Juin</span><span>Mangeoires ×2</span></div>
+        <div class="elv-almanax-item elv-alm-cap"><span class="elv-alm-month">Juillet</span><span>Capacité Amoureuse garantie</span></div>
+        <div class="elv-almanax-item"><span class="elv-alm-month">Août</span><span>25% de chance de créer 2 objets</span></div>
+        <div class="elv-almanax-item"><span class="elv-alm-month">Septembre</span><span>Caresseurs ×2</span></div>
+        <div class="elv-almanax-item elv-alm-cap"><span class="elv-alm-month">Octobre</span><span>Capacité Sage garantie</span></div>
+        <div class="elv-almanax-item elv-alm-cap"><span class="elv-alm-month">Novembre</span><span>Capacité Précoce garantie</span></div>
+        <div class="elv-almanax-item"><span class="elv-alm-month">Décembre</span><span>Dragofesses ×2</span></div>
+      </div>
+    </div>
+
+  </section>
+
 </main>
 
 <!-- ======= MODAL CONFIG IMAGIRO ======= -->
@@ -737,6 +1061,7 @@
 <script src="assets/js/app.js"></script>
 <script src="assets/js/craft-fm.js"></script>
 <script src="assets/js/stats.js"></script>
+<script src="assets/js/elevage.js"></script>
 
 <script>
 /* ── Version & Changelog ── */
