@@ -2304,8 +2304,13 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
   }
 
   rows.sort((a, b) => {
-    if (mode === 'brisage')
+    if (mode === 'brisage') {
+      /* Items avec marge réelle (inKamas) en tête, triés par Marge/u desc.
+         Items en mode proxy (pas de prix runes) triés par brisageValue desc en queue. */
+      if (a.inKamas !== b.inKamas) return a.inKamas ? -1 : 1;
+      if (a.inKamas) return (b.net ?? -Infinity) - (a.net ?? -Infinity);
       return (b.brisageValue ?? -Infinity) - (a.brisageValue ?? -Infinity);
+    }
     return sortBy === 'margin' ? (b.net ?? -Infinity) - (a.net ?? -Infinity) :
            sortBy === 'cost'   ? a.craftCost - b.craftCost :
            (b.roi ?? -Infinity) - (a.roi ?? -Infinity);
