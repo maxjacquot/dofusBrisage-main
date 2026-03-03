@@ -1996,6 +1996,8 @@ function renderBrisage(item, ingredients, serverCoef, runePrices, dumpCoef = nul
    ██████  RANKING HELPER commun (Brisage + Craft→Vente)
 ================================================================ */
 
+let _rankState = null; // { rows, shown, mode, detailFn, wrapId, budget }
+
 /* ── Poids PA par stat — source : formule Dofus communautaire ──
    Formule : runes ≈ (valeur × poids × niveau × 0.0150) / poids
    Ce dictionnaire donne le "poids_rune" de chaque caractéristique.
@@ -2075,14 +2077,53 @@ async function fetchLevelType(id) {
   } catch { return { level: null, type: null, brisagePA: null }; }
 }
 
-async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = null, typeFilterId = null, detailFn = 'briLoadItemById', mode = 'craftvente', runePriceId = null }) {
+function _rankRowHtml(r, idx, mode, detailFn) {
+  const badge = r.type ? `<span class="badge" style="margin-left:.3rem;font-size:.68rem;vertical-align:middle">${r.type}</span>` : '';
+  if (mode === 'brisage') {
+    const netCell   = r.inKamas && r.net != null
+      ? `<span class="profit-badge ${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : ''}${fmtKa(r.net)}</span>`
+      : '<span style="color:var(--text-500)">—</span>';
+    const revenueCell = r.inKamas
+      ? fmtKa(r.brisageValue)
+      : '<span style="color:var(--text-500);font-size:.78rem" title="Prix de runes manquants — classement relatif">~</span>';
+    const focusCell = r.focusLabel
+      ? `<span class="badge" style="font-size:.72rem">${r.focusLabel}</span>`
+      : '<span style="color:var(--text-500);font-size:.78rem">—</span>';
+    return `<tr>
+      <td style="color:var(--text-500);font-size:.78rem">${idx + 1}</td>
+      <td><strong>${r.name}</strong>${badge}</td>
+      <td class="tc" style="color:var(--text-500);font-size:.82rem;font-weight:600">${r.level ?? '—'}</td>
+      <td class="tr" style="color:var(--text-300);font-size:.82rem">${r.brisagePA ?? '—'}</td>
+      <td class="tc">${focusCell}</td>
+      <td class="tr">${revenueCell}</td>
+      <td class="tr">${fmtKa(r.craftCost)}</td>
+      <td class="tr">${netCell}</td>
+      <td class="tc"><button class="btn-sm" onclick="${detailFn}(${r.id})">🔎 Voir</button></td>
+    </tr>`;
+  } else {
+    return `<tr>
+      <td style="color:var(--text-500);font-size:.78rem">${idx + 1}</td>
+      <td><strong>${r.name}</strong>${badge}</td>
+      <td class="tc" style="color:var(--text-500);font-size:.82rem;font-weight:600">${r.level ?? '—'}</td>
+      <td class="tr" style="color:var(--text-300);font-size:.82rem">${r.brisagePA ?? '—'}</td>
+      <td class="tr">${fmtKa(r.craftCost)}</td>
+      <td class="tr">${fmtKa(r.hdvPrice)}</td>
+      <td class="tr"><span class="profit-badge ${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : ''}${fmtKa(r.net)}</span></td>
+      <td class="tr"><span style="color:${roiColor};font-weight:700">${roiTxt}</span></td>
+      <td class="tc"><button class="btn-sm" onclick="${detailFn}(${r.id})">🔎 Voir</button></td>
+    </tr>`;
+  }
+}
+
+async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = null, typeFilterId = null, detailFn = 'briLoadItemById', mode = 'craftvente', minLevelId = null, maxLevelId = null }) {
   const btn        = document.getElementById(btnId);
   const wrap       = document.getElementById(wrapId);
   const budget     = +(document.getElementById(budgetId)?.value)  || Infinity;
   const sortBy     = document.getElementById(sortId)?.value       || 'roi';
-  const minPrice   = minPriceId    ? (+(document.getElementById(minPriceId)?.value)    || 0) : 0;
-  const runePrice  = runePriceId   ? (+(document.getElementById(runePriceId)?.value)   || 0) : 0;
-  const typeFilter = typeFilterId  ? (document.getElementById(typeFilterId)?.value     || 'all') : 'all';
+  const minPrice   = minPriceId   ? (+(document.getElementById(minPriceId)?.value)  || 0) : 0;
+  const typeFilter = typeFilterId ? (document.getElementById(typeFilterId)?.value    || 'all') : 'all';
+  const minLevel   = minLevelId    ? (+(document.getElementById(minLevelId)?.value)    || 0) : 0;
+  const maxLevel   = maxLevelId    ? (+(document.getElementById(maxLevelId)?.value)    || Infinity) : Infinity;
 
   const dump      = getPriceDump();
   const craftData = getCraftData();
@@ -2108,10 +2149,28 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
 
   /* Données brisage pré-calculées (type + PA) */
   const brisageData = getBrisageData();
-  /* Coefficients imagiro (pa sans niveau) — fallback quand BRISAGE_KEY vide */
+  /* Niveaux issus du dump equipment_all (fallback niveau + type) */
+  const equipLevels = getEquipmentLevels();
+  /* Coefficients imagiro (taux de brisage % par item) */
   let _imgCoeffsRaw = {};
   try { _imgCoeffsRaw = JSON.parse(localStorage.getItem(IMAGIRO_COEFFS_KEY) || '{}'); } catch { /* ignore */ }
   const imgCoeffs = _imgCoeffsRaw;
+  /* En mode brisage, s'assurer que le dump equipment_all est chargé (effets + focus) */
+  if (mode === 'brisage' && !_equipmentAll) await tryLoadEquipmentDump();
+
+  /* Prix des runes + index de noms (pour le calcul focus en mode brisage) */
+  const runePricesGlobal = mode === 'brisage' ? getBriRunePrices()   : {};
+  const runeIdxGlobal    = mode === 'brisage' ? getRuneNameIndex()   : {};
+
+  /* Mapping filtre UI → types DofusDude réels (plusieurs types par catégorie) */
+  const FILTER_TO_TYPES = {
+    Bijou:    ['Anneau', 'Amulette'],
+    Ceinture: ['Ceinture'],
+    Bottes:   ['Bottes'],
+    Cape:     ['Cape', 'Manteau'],
+    Chapeau:  ['Chapeau', 'Casque', 'Coiffe', 'Couronne'],
+    Bouclier: ['Bouclier'],
+  };
 
   /* Heuristique nom — fallback si pas de données brisage */
   const TYPE_KW = {
@@ -2132,15 +2191,13 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
 
     /* Filtre par type — données DofusDude en priorité, heuristique en fallback */
     if (typeFilter !== 'all') {
-      const storedType = brisageData[itemId]?.type || null;
+      const storedType = brisageData[itemId]?.type || equipLevels[itemId]?.type || null;
       if (storedType) {
-        /* Données réelles disponibles */
         if (typeFilter === 'Arme') {
           if (NON_WEAPON_TYPES.has(storedType)) continue;
-        } else if (typeFilter === 'Bijou') {
-          if (storedType !== 'Anneau' && storedType !== 'Amulette') continue;
         } else {
-          if (storedType !== typeFilter) continue;
+          const validTypes = FILTER_TO_TYPES[typeFilter] || [typeFilter];
+          if (!validTypes.includes(storedType)) continue;
         }
       } else {
         /* Fallback heuristique (nom) */
@@ -2163,22 +2220,72 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
     if (!allPriced || craftCost <= 0 || craftCost > budget) continue;
 
     if (mode === 'brisage') {
-      /* ── Mode Brisage : valeur = runes estimées × prix Rune Ba ── */
+      /* ── Mode Brisage : formule officielle avec focus ── */
       const bd    = brisageData[itemId];
-      const pa    = bd?.pa    ?? imgCoeffs[itemId] ?? null;
-      const level = bd?.level ?? null;
-      if (pa == null) continue;   // données requises
+      /* pa : valeur agrégée — priorité brisageData, sinon taux imagiro comme proxy */
+      const pa    = bd?.pa ?? imgCoeffs[itemId] ?? null;
+      const level = bd?.level ?? equipLevels[itemId]?.level ?? null;
+      const type  = bd?.type  || equipLevels[itemId]?.type  || null;
 
-      /* Si level connu : formule exacte ; sinon : pa = score de classement direct */
-      const runesEst     = level != null ? Math.round(pa * level * 0.015) : pa;
-      const brisageValue = runePrice > 0 ? runesEst * runePrice : null;
-      const net          = brisageValue != null ? brisageValue - craftCost : null;
-      const roi          = (net != null && craftCost > 0) ? net / craftCost : null;
+      /* Pas de données du tout → passer */
+      if (pa == null && !getEquipmentItem(itemId)) continue;
+      if (level != null && (level < minLevel || level > maxLevel)) continue;
 
+      /* Effets depuis equipment_all (en mémoire vive) */
+      const equipItem = getEquipmentItem(itemId);
+      const effects   = equipItem?.effects ?? null;
+
+      /* Taux de brisage % : per-item imagiro > global */
+      const itemCoef = imgCoeffs[itemId] != null ? Number(imgCoeffs[itemId]) : getBriServerCoef();
+
+      let brisageValue = 0;
+      let focusLabel   = null;
+      let inKamas      = false; // true = valeur en kamas réels, false = proxy relatif
+
+      if (effects && level) {
+        /* Calcul complet : formule Dofus 3 avec toutes les options focus */
+        const stats = computeStatBrisage({ level, effects }, itemCoef);
+
+        const effectiveRP = statName => {
+          const ov = runePricesGlobal[statName] ?? 0;
+          const rn = STAT_TO_RUNE_BA[statName] || '';
+          return ov > 0 ? ov : (rn ? (runeIdxGlobal[rn] ?? 0) : 0);
+        };
+
+        const totalNoFocus = stats.reduce(
+          (s, d) => s + (d.hasWeight ? d.runesNoFocus * effectiveRP(d.name) : 0), 0);
+
+        const allOptions = [
+          { label: 'Sans focus', value: totalNoFocus },
+          ...stats.filter(d => d.hasWeight).map(d => ({
+            label: d.name, value: d.runesFocus * effectiveRP(d.name),
+          })),
+        ].filter(o => o.value > 0);
+
+        if (allOptions.length > 0) {
+          const best = allOptions.reduce((b, c) => c.value > b.value ? c : b);
+          brisageValue = best.value;
+          focusLabel   = best.label;
+          inKamas      = true;
+        } else {
+          /* Pas de prix de runes → proxy : pa × level pour trier */
+          brisageValue = pa != null ? (pa * (level ?? 1)) : 0;
+        }
+
+      } else if (pa != null) {
+        /* Fallback : equipment_all non chargé, proxy pa × level */
+        brisageValue = pa * (level ?? 1);
+      } else {
+        continue;
+      }
+
+      if (brisageValue <= 0) continue;
+
+      const net = inKamas ? brisageValue - craftCost : null;
       rows.push({
         id: itemId, name: craft.Name || `#${itemId}`,
-        craftCost, runesEst, brisageValue, net, roi,
-        level, type: bd?.type || null, brisagePA: pa,
+        craftCost, brisageValue, net, inKamas,
+        level, type, brisagePA: pa, focusLabel,
       });
 
     } else {
@@ -2197,15 +2304,16 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
   }
 
   rows.sort((a, b) => {
-    if (mode === 'brisage' && runePrice === 0)
-      return b.runesEst - a.runesEst; // sans prix : trier par runes générées
+    if (mode === 'brisage')
+      return (b.brisageValue ?? -Infinity) - (a.brisageValue ?? -Infinity);
     return sortBy === 'margin' ? (b.net ?? -Infinity) - (a.net ?? -Infinity) :
            sortBy === 'cost'   ? a.craftCost - b.craftCost :
            (b.roi ?? -Infinity) - (a.roi ?? -Infinity);
   });
 
-  const top = rows.slice(0, 50);
-  if (!top.length) {
+  const PAGE = 50;
+
+  if (!rows.length) {
     const hint = mode === 'brisage'
       ? 'Exportez les coefficients de brisage (💹 → Export), ou augmentez le budget.'
       : 'Augmentez le budget ou changez les filtres.';
@@ -2214,31 +2322,33 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
     return;
   }
 
-  /* Fetch niveau + type DofusDude pour le top 50 — seulement en mode craft→vente
-     (en mode brisage les données viennent déjà du fichier export) */
+  /* Fetch niveau + type DofusDude pour le premier écran (craft→vente seulement) */
   if (mode === 'craftvente') {
     if (btn) btn.textContent = '⏳ Niveaux…';
-    const ltResults = await Promise.allSettled(top.map(r => fetchLevelType(r.id)));
+    const first = rows.slice(0, PAGE);
+    const ltResults = await Promise.allSettled(first.map(r => fetchLevelType(r.id)));
     ltResults.forEach((res, i) => {
       if (res.status === 'fulfilled') {
-        top[i].level = res.value.level;
-        top[i].type  = res.value.type;
-        if (top[i].brisagePA == null) top[i].brisagePA = res.value.brisagePA ?? null;
+        first[i].level = res.value.level;
+        first[i].type  = res.value.type;
+        if (first[i].brisagePA == null) first[i].brisagePA = res.value.brisagePA ?? null;
       }
     });
   }
 
-  /* ── Rendu table ── */
-  const hasLevel = rows.some(r => r.level != null);
+  /* Sauvegarde de l'état pour la pagination */
+  _rankState = { rows, shown: PAGE, mode, detailFn, wrapId, budget };
+
+  /* ── Rendu initial ── */
+  const hasLevel    = rows.some(r => r.level != null);
+  const hasKamasRows = mode === 'brisage' && rows.some(r => r.inKamas);
   const headersBrisage = `
     <th>#</th><th>Item</th><th class="tc">Niv.</th>
     <th class="tr" title="Coefficient de brisage">Coeff.</th>
-    <th class="tr" title="${hasLevel ? 'Runes générées estimées à coeff. serveur 100% — Formule : Coeff. × Niveau × 0,015' : 'Score de brisage (niveau non disponible — classement relatif)'}">
-      ${hasLevel ? 'Runes générées' : 'Score brisage'}</th>
+    <th class="tc">Focus</th>
+    <th class="tr">Revenu brisage</th>
     <th class="tr">Coût craft</th>
-    <th class="tr" title="Valeur totale des runes générées (quantité × prix rune saisi)">${runePrice > 0 ? 'Revenus runes' : '—'}</th>
-    <th class="tr">Marge</th>
-    <th class="tr">ROI</th>
+    <th class="tr">Marge/u</th>
     <th class="tc">Détail</th>`;
 
   const headersCv = `
@@ -2250,59 +2360,60 @@ async function runCraftRanking({ btnId, wrapId, budgetId, sortId, minPriceId = n
     <th class="tr">ROI</th>
     <th class="tc">Détail</th>`;
 
-  const rowHtml = top.map((r, idx) => {
-    const badge = r.type ? `<span class="badge" style="margin-left:.3rem;font-size:.68rem;vertical-align:middle">${r.type}</span>` : '';
-    const roiColor = r.roi != null ? (r.roi >= 0.1 ? 'var(--green)' : r.roi >= 0 ? 'var(--orange)' : 'var(--red)') : 'var(--text-500)';
-    const roiTxt   = r.roi != null ? `${r.roi >= 0 ? '+' : ''}${Math.round(r.roi * 100)}%` : '—';
+  const firstRows = rows.slice(0, PAGE);
+  const shown     = firstRows.length;
 
-    if (mode === 'brisage') {
-      const valCell = runePrice > 0 && r.brisageValue != null ? fmtKa(r.brisageValue) : '—';
-      const netCell = r.net != null
-        ? `<span class="profit-badge ${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : ''}${fmtKa(r.net)}</span>`
-        : '<span style="color:var(--text-500)">—</span>';
-      return `<tr>
-        <td style="color:var(--text-500);font-size:.78rem">${idx + 1}</td>
-        <td><strong>${r.name}</strong>${badge}</td>
-        <td class="tc" style="color:var(--text-500);font-size:.82rem;font-weight:600">${r.level ?? '—'}</td>
-        <td class="tr" style="color:var(--text-300);font-size:.82rem">${r.brisagePA ?? '—'}</td>
-        <td class="tr" style="font-weight:600">${r.runesEst}</td>
-        <td class="tr">${fmtKa(r.craftCost)}</td>
-        <td class="tr">${valCell}</td>
-        <td class="tr">${netCell}</td>
-        <td class="tr"><span style="color:${roiColor};font-weight:700">${roiTxt}</span></td>
-        <td class="tc"><button class="btn-sm" onclick="${detailFn}(${r.id})">🔎 Voir</button></td>
-      </tr>`;
-    } else {
-      return `<tr>
-        <td style="color:var(--text-500);font-size:.78rem">${idx + 1}</td>
-        <td><strong>${r.name}</strong>${badge}</td>
-        <td class="tc" style="color:var(--text-500);font-size:.82rem;font-weight:600">${r.level ?? '—'}</td>
-        <td class="tr" style="color:var(--text-300);font-size:.82rem">${r.brisagePA ?? '—'}</td>
-        <td class="tr">${fmtKa(r.craftCost)}</td>
-        <td class="tr">${fmtKa(r.hdvPrice)}</td>
-        <td class="tr"><span class="profit-badge ${r.net >= 0 ? 'pos' : 'neg'}">${r.net >= 0 ? '+' : ''}${fmtKa(r.net)}</span></td>
-        <td class="tr"><span style="color:${roiColor};font-weight:700">${roiTxt}</span></td>
-        <td class="tc"><button class="btn-sm" onclick="${detailFn}(${r.id})">🔎 Voir</button></td>
-      </tr>`;
-    }
-  }).join('');
+  const _noEquipWarn = mode === 'brisage' && !_equipmentAll
+    ? `<div style="padding:.5rem .85rem;margin-bottom:.5rem;background:rgba(90,56,0,.25);border:1px solid #7a4c00;border-radius:8px;font-size:.78rem;color:#c8a84b">
+        ⚠️ Données d'effets non chargées — Focus et Revenu brisage indisponibles (classement relatif uniquement).
+        Importez <strong>equipment_all_….json</strong> via ⚙️ → Importer un fichier JSON.
+       </div>`
+    : mode === 'brisage' && !hasKamasRows
+    ? `<div style="padding:.5rem .85rem;margin-bottom:.5rem;background:rgba(20,40,80,.3);border:1px solid #2a5080;border-radius:8px;font-size:.78rem;color:#7ab4e0">
+        ℹ️ Prix de runes non trouvés dans le dump HDV — Focus et Revenu indisponibles (classement relatif).
+        Téléchargez les prix imagiro ou définissez les prix de runes manuellement dans le calculateur Brisage.
+       </div>`
+    : '';
 
   wrap.innerHTML = `
+    ${_noEquipWarn}
     <div class="overflow-x" style="margin-top:.75rem">
       <table class="tbl">
         <thead><tr>${mode === 'brisage' ? headersBrisage : headersCv}</tr></thead>
-        <tbody>${rowHtml}</tbody>
+        <tbody>${firstRows.map((r, i) => _rankRowHtml(r, i, mode, detailFn)).join('')}</tbody>
       </table>
     </div>
-    <div style="padding:.5rem;font-size:.72rem;color:var(--text-500);text-align:center">
-      ${rows.length} items analysés · top ${top.length} affiché${top.length > 1 ? 's' : ''}
+    ${rows.length > PAGE ? `<div class="rank-more-wrap" style="text-align:center;margin:.6rem 0"><button class="btn" onclick="rankShowMore()">50 items suivants ▼</button></div>` : ''}
+    <div class="rank-footer" style="padding:.5rem;font-size:.72rem;color:var(--text-500);text-align:center">
+      ${rows.length} items analysés · ${shown} affichés
       · budget ${budget === Infinity ? 'illimité' : fmtKa(budget)}
-      ${mode === 'brisage' && runePrice === 0 ? ' · <em>Entrez un prix de rune pour voir la marge et le ROI</em>' : ''}
-      ${mode === 'brisage' && !hasLevel ? ' · <em>Niveau non disponible — "Score brisage" = classement relatif, non absolu</em>' : ''}
+      ${mode === 'brisage' && !hasLevel ? ' · <em>Niveau non disponible — classement relatif</em>' : ''}
     </div>
   `;
 
   if (btn) { btn.disabled = false; btn.textContent = '🚀 Calculer le classement'; }
+}
+
+function rankShowMore() {
+  if (!_rankState) return;
+  const { rows, mode, detailFn, wrapId, budget } = _rankState;
+  const wrap = document.getElementById(wrapId);
+  const tbody = wrap?.querySelector('tbody');
+  if (!tbody) return;
+
+  const start = _rankState.shown;
+  const next  = rows.slice(start, start + 50);
+  if (!next.length) return;
+  _rankState.shown += next.length;
+
+  tbody.insertAdjacentHTML('beforeend', next.map((r, i) => _rankRowHtml(r, start + i, mode, detailFn)).join(''));
+
+  const footer = wrap.querySelector('.rank-footer');
+  if (footer) footer.innerHTML = `${rows.length} items analysés · ${_rankState.shown} affichés · budget ${budget === Infinity ? 'illimité' : fmtKa(budget)}`;
+
+  if (_rankState.shown >= rows.length) {
+    wrap.querySelector('.rank-more-wrap')?.remove();
+  }
 }
 
 /* ── Classement Brisage ── */
@@ -2311,9 +2422,9 @@ async function briRankItems() {
     btnId: 'bri-rank-btn', wrapId: 'bri-rank-results',
     budgetId: 'bri-budget', sortId: 'bri-sort',
     typeFilterId: 'bri-type-filter',
+    minLevelId: 'bri-min-level', maxLevelId: 'bri-max-level',
     detailFn: 'briLoadItemById',
     mode: 'brisage',
-    runePriceId: 'bri-rune-price',
   });
 }
 
@@ -2379,6 +2490,12 @@ async function _processOneImportFile(file) {
   ) {
     localStorage.setItem(IMAGIRO_COEFFS_KEY, JSON.stringify(data));
     return `${Object.keys(data).length} coefficients de brisage importés`;
+  }
+  /* Cas 5 : equipment_all — [ { ankama_id, name, level, type, … } ] */
+  if (Array.isArray(data) && data[0]?.ankama_id !== undefined && data[0]?.level !== undefined) {
+    const count = storeEquipmentLevels(data);
+    _equipmentAll = new Map(data.map(it => [it.ankama_id, it]));
+    return `${count} niveaux d'items importés (equipment_all)`;
   }
   throw new Error('Format non reconnu');
 }

@@ -130,14 +130,6 @@
 
         <div class="bri-filters">
           <div class="bri-filter-group">
-            <label>💰 Budget max (kamas)</label>
-            <input type="number" class="inp-text bri-inp" id="bri-budget" placeholder="ex: 50000" min="0" step="1000">
-          </div>
-          <div class="bri-filter-group">
-            <label>💎 Prix rune (kamas)</label>
-            <input type="number" class="inp-text bri-inp" id="bri-rune-price" placeholder="ex: 300" min="0" step="1">
-          </div>
-          <div class="bri-filter-group">
             <label>🔎 Filtrer par type</label>
             <select class="inp-text bri-inp" id="bri-type-filter">
               <option value="all">Tous les types</option>
@@ -151,12 +143,12 @@
             </select>
           </div>
           <div class="bri-filter-group">
-            <label>📊 Trier par</label>
-            <select class="inp-text bri-inp" id="bri-sort">
-              <option value="roi">ROI (marge / coût)</option>
-              <option value="margin">Marge absolue</option>
-              <option value="cost">Coût craft</option>
-            </select>
+            <label>📊 Niveau min</label>
+            <input type="number" class="inp-text bri-inp" id="bri-min-level" placeholder="1" min="1" max="230" step="1">
+          </div>
+          <div class="bri-filter-group">
+            <label>📊 Niveau max</label>
+            <input type="number" class="inp-text bri-inp" id="bri-max-level" placeholder="200" min="1" max="230" step="1">
           </div>
           <div class="bri-filter-group" style="align-self:flex-end">
             <button class="btn" id="bri-rank-btn" onclick="briRankItems()">🚀 Calculer le classement</button>

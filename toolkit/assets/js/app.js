@@ -127,10 +127,11 @@ imagiroSyncCreds();
 /* ================================================================
    PRICE DUMP — cache local de tous les prix imagiro
 ================================================================ */
-const DUMP_KEY          = 'imagiro_dump';
-const CRAFT_DATA_KEY    = 'imagiro_craft_data';
-const BRISAGE_KEY       = 'dofus_brisage_pa';
-const IMAGIRO_COEFFS_KEY = 'imagiro_brisage_coeffs';
+const DUMP_KEY            = 'imagiro_dump';
+const CRAFT_DATA_KEY      = 'imagiro_craft_data';
+const BRISAGE_KEY         = 'dofus_brisage_pa';
+const IMAGIRO_COEFFS_KEY  = 'imagiro_brisage_coeffs';
+const EQUIPMENT_LEVELS_KEY = 'dofus_equipment_levels';
 
 /** Retourne le dump chargé en mémoire (rapide) ou depuis localStorage */
 let _priceDump = null;
@@ -196,6 +197,58 @@ function getBrisageCoeffs() {
   const data = getBrisageData();
   for (const [id, val] of Object.entries(data)) result[id] = val.pa;
   return result;
+}
+
+/**
+ * Retourne le lookup { [ankama_id]: { level, type } } issu du fichier equipment_all.
+ */
+function getEquipmentLevels() {
+  try {
+    const raw = localStorage.getItem(EQUIPMENT_LEVELS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+/**
+ * Stocke les données de niveau depuis un tableau d'items equipment_all.
+ * Retourne le nombre d'items stockés.
+ */
+function storeEquipmentLevels(items) {
+  const map = {};
+  for (const it of items) {
+    if (it.ankama_id != null && it.level != null) {
+      map[it.ankama_id] = { level: it.level, type: it.type?.name ?? null };
+    }
+  }
+  localStorage.setItem(EQUIPMENT_LEVELS_KEY, JSON.stringify(map));
+  return Object.keys(map).length;
+}
+
+/** Map en mémoire : ankama_id → item complet (effets inclus) pour la session courante. */
+let _equipmentAll = null;
+
+/**
+ * Retourne l'item equipment_all complet (avec effects) pour un ankama_id donné.
+ * Disponible uniquement après tryLoadEquipmentDump().
+ */
+function getEquipmentItem(itemId) {
+  return _equipmentAll?.get(+itemId) ?? null;
+}
+
+/**
+ * Charge le dump equipment_all depuis ./dumps/equipment_all_2026-03-03.json.
+ * - Toujours exécuté au démarrage pour peupler _equipmentAll en mémoire.
+ * - Ne réécrit le cache localStorage (level/type) que si absent.
+ */
+async function tryLoadEquipmentDump() {
+  try {
+    const res = await fetch('./dumps/equipment_all_2026-03-03.json');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!Array.isArray(data) || data[0]?.ankama_id === undefined) return;
+    _equipmentAll = new Map(data.map(it => [it.ankama_id, it]));
+    if (Object.keys(getEquipmentLevels()).length === 0) storeEquipmentLevels(data);
+  } catch { /* fichier non accessible */ }
 }
 
 /**
@@ -369,3 +422,6 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.search-wrap'))
     document.querySelectorAll('.search-drop').forEach(d => d.classList.remove('open'));
 });
+
+/* Tente de charger automatiquement le dump equipment_all au démarrage */
+tryLoadEquipmentDump();
